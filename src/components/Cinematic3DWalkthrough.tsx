@@ -125,39 +125,29 @@ const scenes = [
 export default function Cinematic3DWalkthrough({ onOpenCheckout }: Cinematic3DWalkthroughProps) {
   const [activeSceneIndex, setActiveSceneIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
-  const [progress, setProgress] = useState(0);
   const currentScene = scenes[activeSceneIndex];
 
-  // Auto-play progress loop
+  // Lightweight 6-second auto-play timer (0 re-renders during playback)
   useEffect(() => {
     if (!isPlaying) return;
 
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          setActiveSceneIndex((idx) => (idx + 1) % scenes.length);
-          return 0;
-        }
-        return prev + 1.2;
-      });
-    }, 100);
+    const timer = setInterval(() => {
+      setActiveSceneIndex((prev) => (prev + 1) % scenes.length);
+    }, 6500);
 
-    return () => clearInterval(interval);
+    return () => clearInterval(timer);
   }, [isPlaying, activeSceneIndex]);
 
   const handleSelectScene = (index: number) => {
     setActiveSceneIndex(index);
-    setProgress(0);
   };
 
   const handleNext = () => {
     setActiveSceneIndex((prev) => (prev + 1) % scenes.length);
-    setProgress(0);
   };
 
   const handlePrev = () => {
     setActiveSceneIndex((prev) => (prev - 1 + scenes.length) % scenes.length);
-    setProgress(0);
   };
 
   return (
@@ -253,11 +243,12 @@ export default function Cinematic3DWalkthrough({ onOpenCheckout }: Cinematic3DWa
                       : 'bg-slate-950/70 border-white/10 text-slate-400 hover:text-slate-200 hover:border-slate-700'
                   }`}
                 >
-                  {/* Subtle Top Active Progress Bar */}
+                  {/* Subtle Top Active Progress Bar with CSS animation */}
                   {isSelected && isPlaying && (
                     <div
-                      className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 to-indigo-400 transition-all pointer-events-none"
-                      style={{ width: `${progress}%` }}
+                      key={`progress-${activeSceneIndex}`}
+                      className="absolute top-0 left-0 h-1 bg-gradient-to-r from-emerald-400 to-indigo-400 pointer-events-none animate-[progress_6.5s_linear_forwards]"
+                      style={{ width: '100%' }}
                     />
                   )}
 

@@ -85,21 +85,18 @@ export default function HeroSection({ hero, product, onOpenCheckout }: HeroSecti
 
   return (
     <section className="relative min-h-[88vh] sm:min-h-[94vh] flex items-center justify-center pt-4 sm:pt-14 pb-14 sm:pb-28 px-3 sm:px-6 overflow-hidden perspective-1200">
-      {/* 🏛️ Dual-Responsive University Campus Backdrops (Dedicated 9:16 for Mobile, 16:9 for PC) */}
+      {/* 🏛️ Dual-Responsive University Campus Backdrops (Loads ONLY 1 image matching viewport) */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
-        {/* Mobile-Only Dedicated 9:16 Vertical Artwork */}
-        <img
-          src="/images/bg-universities-mobile.jpg"
-          alt="Engineering University Campuses"
-          className="block sm:hidden w-full h-full object-cover object-top opacity-90 filter contrast-110 brightness-95"
-        />
-
-        {/* Desktop-Only 16:9 Panoramic Artwork (Untouched) */}
-        <img
-          src="/images/bg-universities.jpg"
-          alt="Engineering University Campuses"
-          className="hidden sm:block w-full h-full object-cover object-center opacity-90 transform scale-105 filter contrast-115 brightness-95"
-        />
+        <picture className="w-full h-full">
+          <source media="(max-width: 640px)" srcSet="/images/bg-universities-mobile.jpg" />
+          <img
+            src="/images/bg-universities.jpg"
+            alt="Engineering University Campuses"
+            className="w-full h-full object-cover object-top sm:object-center opacity-90 filter contrast-110 brightness-95 transform-gpu"
+            fetchPriority="high"
+            decoding="async"
+          />
+        </picture>
 
         {/* Transparent Atmospheric Fog & Vignette Gradients */}
         <div className="absolute inset-0 bg-[#07090e]/25 sm:bg-[#07090e]/20" />
