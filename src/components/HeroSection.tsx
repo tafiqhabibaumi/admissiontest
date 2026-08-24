@@ -47,6 +47,7 @@ export default function HeroSection({ hero, product, onOpenCheckout }: HeroSecti
   const cardRef = useRef<HTMLDivElement>(null);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 768) return;
     if (!cardRef.current) return;
     const rect = cardRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -56,15 +57,15 @@ export default function HeroSection({ hero, product, onOpenCheckout }: HeroSecti
     const xPct = (x / rect.width) * 2 - 1;
     const yPct = (y / rect.height) * 2 - 1;
     
-    // Max 15 degree rotation
+    // Max 12 degree rotation
     setTilt({
-      x: -yPct * 12,
-      y: xPct * 12,
+      x: -yPct * 10,
+      y: xPct * 10,
     });
     setGlare({
       x: (x / rect.width) * 100,
       y: (y / rect.height) * 100,
-      opacity: 0.25,
+      opacity: 0.2,
     });
   };
 
