@@ -1,0 +1,10 @@
+[
+  {
+    "provider": "bkash",
+    "trxId": "9J7X8KL9",
+    "amount": 499,
+    "senderPhone": "01712345678",
+    "rawSms": "You have received Tk 499.00 from 01712345678. Ref . Fee Tk 0.00. Balance Tk 5,450.00. TrxID 9J7X8KL9 at 24/08/2026 16:10",
+    "parsedAt": "2026-08-24T10:18:41.250Z"
+  }
+]
