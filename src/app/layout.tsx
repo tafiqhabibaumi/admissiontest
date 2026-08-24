@@ -44,10 +44,6 @@ export default function RootLayout({
         <meta name="theme-color" content="#07090e" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Baloo+Da+2:wght@400;500;600;700;800&family=Noto+Sans+Bengali:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
-          rel="stylesheet"
-        />
       </head>
       <body
         className="bg-[#07090e] text-slate-100 antialiased min-h-screen relative selection:bg-emerald-500 selection:text-white overflow-x-hidden"

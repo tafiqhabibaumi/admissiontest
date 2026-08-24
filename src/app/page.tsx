@@ -32,7 +32,7 @@ export default function LandingPage() {
           setConfig((prev) => ({ ...prev, ...data }));
         }
       })
-      .catch((err) => console.log('Loaded default config', err));
+      .catch(() => {});
 
     trackPixelEvent('ViewContent', {
       content_name: 'All University Science Admission Master Guide Landing Page',
@@ -62,45 +62,61 @@ export default function LandingPage() {
       {/* Top University Logos Ribbon */}
       <UniversityLogosBanner />
 
-      {/* 3D Cinematic Interactive Playthrough / Walkthrough */}
-      <Cinematic3DWalkthrough
-        onOpenCheckout={handleOpenCheckout}
-      />
+      {/* 3D Cinematic Interactive Playthrough */}
+      <div className="content-auto">
+        <Cinematic3DWalkthrough
+          onOpenCheckout={handleOpenCheckout}
+        />
+      </div>
 
       {/* 50-Chapter Priority & Skip Matrix */}
-      <ChapterAnalyzer
-        chapters={config.chapters}
-        onOpenCheckout={handleOpenCheckout}
-      />
+      <div className="content-auto">
+        <ChapterAnalyzer
+          chapters={config.chapters}
+          onOpenCheckout={handleOpenCheckout}
+        />
+      </div>
 
       {/* 3D Look-Inside PDF Carousel */}
-      <BookPreviewCarousel
-        onOpenCheckout={handleOpenCheckout}
-      />
+      <div className="content-auto">
+        <BookPreviewCarousel
+          onOpenCheckout={handleOpenCheckout}
+        />
+      </div>
 
       {/* 12-Week Day-by-Day Roadmap */}
-      <RoadmapSection
-        onOpenCheckout={handleOpenCheckout}
-      />
+      <div className="content-auto">
+        <RoadmapSection
+          onOpenCheckout={handleOpenCheckout}
+        />
+      </div>
 
       {/* Sustainable Daily Routine */}
-      <DailyRoutineSection />
+      <div className="content-auto">
+        <DailyRoutineSection />
+      </div>
 
       {/* Single Master Product Pricing Section */}
-      <SingleProductPricing
-        product={config.product}
-        onOpenCheckout={handleOpenCheckout}
-      />
+      <div className="content-auto">
+        <SingleProductPricing
+          product={config.product}
+          onOpenCheckout={handleOpenCheckout}
+        />
+      </div>
 
       {/* Verified Student Reviews */}
-      <Testimonials
-        testimonials={config.testimonials}
-      />
+      <div className="content-auto">
+        <Testimonials
+          testimonials={config.testimonials}
+        />
+      </div>
 
       {/* FAQ Accordion */}
-      <FaqSection
-        faqs={config.faqs}
-      />
+      <div className="content-auto">
+        <FaqSection
+          faqs={config.faqs}
+        />
+      </div>
 
       {/* Footer */}
       <Footer

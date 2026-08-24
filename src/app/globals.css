@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@300;400;500;600;700;800;900&family=Baloo+Da+2:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700;800&family=Baloo+Da+2:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -22,8 +22,8 @@
   body {
     background-color: var(--background);
     color: var(--foreground);
-    font-family: 'Noto Sans Bengali', 'Baloo Da 2', 'SolaimanLipi', 'Kalpurush', 'Siyam Rupali', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    line-height: 1.7;
+    font-family: 'Noto Sans Bengali', 'Baloo Da 2', 'SolaimanLipi', 'Kalpurush', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.65;
     letter-spacing: 0;
     overflow-x: hidden;
     width: 100%;
@@ -37,10 +37,10 @@
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Baloo Da 2', 'Noto Sans Bengali', 'SolaimanLipi', 'Kalpurush', sans-serif;
     letter-spacing: 0 !important;
-    line-height: 1.45 !important;
+    line-height: 1.4 !important;
     font-weight: 700;
-    padding-top: 0.1em;
-    padding-bottom: 0.1em;
+    padding-top: 0.08em;
+    padding-bottom: 0.08em;
     overflow: visible;
   }
 
@@ -71,55 +71,41 @@
   -webkit-backface-visibility: hidden;
 }
 
-/* ================= 3D GLASSMORPHISM & SPECULAR TOKENS ================= */
+/* Hardware accelerated 3D card tokens */
 .glass-3d-card {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%), rgba(10, 14, 23, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(15, 23, 42, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6), inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 15px 30px -10px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease, box-shadow 0.25s ease;
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 .glass-3d-card:hover {
-  border-color: rgba(99, 102, 241, 0.35);
-  box-shadow: 0 25px 50px -12px rgba(99, 102, 241, 0.25), inset 0 1px 0 0 rgba(255, 255, 255, 0.25);
-  transform: translateY(-4px) scale(1.01);
+  border-color: rgba(99, 102, 241, 0.4);
+  box-shadow: 0 20px 40px -10px rgba(99, 102, 241, 0.2), inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
+  transform: translateY(-3px) translateZ(0);
 }
 
 .glass-pill {
-  background: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(15, 23, 42, 0.75);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 20px -5px rgba(0, 0, 0, 0.4);
 }
 
-/* ================= 3D KEYFRAME ANIMATIONS ================= */
+/* High performance content-visibility for offscreen sections */
+.content-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 700px;
+}
+
+/* ================= KEYFRAME ANIMATIONS ================= */
 @keyframes floatSlow {
   0%, 100% {
-    transform: translateY(0px) rotate(0deg);
+    transform: translateY(0px);
   }
   50% {
-    transform: translateY(-10px) rotate(1deg);
-  }
-}
-
-@keyframes floatReverse {
-  0%, 100% {
-    transform: translateY(0px) rotate(0deg);
-  }
-  50% {
-    transform: translateY(8px) rotate(-1deg);
-  }
-}
-
-@keyframes floatCapsule {
-  0%, 100% {
-    transform: translateY(0px) scale(1);
-  }
-  50% {
-    transform: translateY(-8px) scale(1.03);
+    transform: translateY(-6px);
   }
 }
 
@@ -132,46 +118,25 @@
   }
 }
 
-@keyframes pulseGlow {
-  0%, 100% {
-    opacity: 0.4;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.8;
-    transform: scale(1.08);
-  }
-}
-
 @keyframes marqueeInfinite {
   0% {
-    transform: translateX(0%);
+    transform: translate3d(0%, 0, 0);
   }
   100% {
-    transform: translateX(-50%);
+    transform: translate3d(-50%, 0, 0);
   }
 }
 
 .animate-float-slow {
-  animation: floatSlow 6s ease-in-out infinite;
-}
-
-.animate-float-reverse {
-  animation: floatReverse 7s ease-in-out infinite;
-}
-
-.animate-float-capsule {
-  animation: floatCapsule 4.5s ease-in-out infinite;
-}
-
-.animate-pulse-glow {
-  animation: pulseGlow 4s ease-in-out infinite;
+  animation: floatSlow 5s ease-in-out infinite;
+  transform: translateZ(0);
 }
 
 .animate-marquee {
   display: flex;
   width: max-content;
-  animation: marqueeInfinite 32s linear infinite;
+  animation: marqueeInfinite 28s linear infinite;
+  will-change: transform;
 }
 
 .animate-marquee:hover {
@@ -182,11 +147,12 @@
   background: linear-gradient(90deg, #059669 0%, #10b981 40%, #34d399 50%, #10b981 60%, #059669 100%);
   background-size: 200% 100%;
   animation: shimmerGlow 3.5s linear infinite;
-  box-shadow: 0 10px 30px -5px rgba(16, 185, 129, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 25px -4px rgba(16, 185, 129, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.3);
+  transform: translateZ(0);
 }
 
 .shimmer-button:hover {
-  box-shadow: 0 15px 40px -5px rgba(16, 185, 129, 0.6), inset 0 1px 0 0 rgba(255, 255, 255, 0.4);
+  box-shadow: 0 12px 35px -4px rgba(16, 185, 129, 0.6), inset 0 1px 0 0 rgba(255, 255, 255, 0.4);
 }
 
 /* ================= VIBRANT GRADIENT TEXTS ================= */
