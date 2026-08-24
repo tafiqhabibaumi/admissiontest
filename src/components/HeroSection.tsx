@@ -107,13 +107,8 @@ export default function HeroSection({ hero, product, onOpenCheckout }: HeroSecti
       </div>
 
       <div className="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-14 items-center relative z-10">
-        {/* Left Column: Bengali Editorial Copy */}
-        <motion.div
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="lg:col-span-7 text-center lg:text-left space-y-4 sm:space-y-6 pt-1 sm:pt-0"
-        >
+        {/* Left Column: Bengali Editorial Copy (Instantly Painted on Frame 0) */}
+        <div className="lg:col-span-7 text-center lg:text-left space-y-4 sm:space-y-6 pt-1 sm:pt-0 transform-gpu">
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-xs sm:text-sm font-semibold backdrop-blur-md shadow-lg shadow-emerald-500/10">
             <Sparkles className="w-3.5 h-3.5 text-emerald-400 animate-spin" style={{ animationDuration: '6s' }} />
@@ -187,15 +182,10 @@ export default function HeroSection({ hero, product, onOpenCheckout }: HeroSecti
               <span>ভেরিফাইড পেমেন্ট</span>
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Right Column: Interactive 3D Book & Floating Formula Capsules */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.15 }}
-          className="lg:col-span-5 flex justify-center w-full mt-4 sm:mt-0 relative"
-        >
+        <div className="lg:col-span-5 flex justify-center w-full mt-4 sm:mt-0 relative transform-gpu">
           {/* Floating 3D Subject Capsules */}
           <div className="hidden sm:block absolute -top-5 -right-4 z-20 animate-float-capsule pointer-events-none">
             <div className="glass-pill px-3 py-1.5 rounded-full flex items-center gap-1.5 text-xs text-emerald-300 font-semibold shadow-2xl">
@@ -317,7 +307,7 @@ export default function HeroSection({ hero, product, onOpenCheckout }: HeroSecti
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
       </div>
     </section>
   );
