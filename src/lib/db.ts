@@ -10,110 +10,140 @@ const ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
 const ADMIN_FILE = path.join(DATA_DIR, 'admin.json');
 const TRANSACTIONS_FILE = path.join(DATA_DIR, 'transactions.json');
 
-function ensureDataDir() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
+// In-memory runtime cache for serverless environments (e.g. Vercel)
+let memoryConfig: SiteConfig = { ...defaultSiteConfig };
+let memoryOrders: Order[] = [];
+let memoryTransactions: ParsedMfsSms[] = [];
+let isConfigLoaded = false;
+let isOrdersLoaded = false;
+let isTransactionsLoaded = false;
+
+function safeEnsureDataDir() {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+  } catch (e) {
+    // Read-only filesystem (e.g. Vercel serverless runtime)
   }
 }
 
-// Get or initialize site config
+// Get site config with robust fallback
 export function getSiteConfig(): SiteConfig {
-  ensureDataDir();
-  if (!fs.existsSync(CONFIG_FILE)) {
-    fs.writeFileSync(CONFIG_FILE, JSON.stringify(defaultSiteConfig, null, 2), 'utf-8');
-    return defaultSiteConfig;
+  if (isConfigLoaded) {
+    return memoryConfig;
   }
+
   try {
-    const raw = fs.readFileSync(CONFIG_FILE, 'utf-8');
-    const parsed = JSON.parse(raw);
-    return { ...defaultSiteConfig, ...parsed };
+    if (fs.existsSync(CONFIG_FILE)) {
+      const raw = fs.readFileSync(CONFIG_FILE, 'utf-8');
+      const parsed = JSON.parse(raw);
+      memoryConfig = { ...defaultSiteConfig, ...parsed };
+      isConfigLoaded = true;
+      return memoryConfig;
+    }
   } catch (err) {
-    console.error('Error reading config file:', err);
-    return defaultSiteConfig;
+    // Silently fallback to defaultSiteConfig
   }
+
+  isConfigLoaded = true;
+  return memoryConfig;
 }
 
 // Save updated site config
 export function saveSiteConfig(newConfig: SiteConfig): boolean {
-  ensureDataDir();
+  memoryConfig = { ...newConfig };
+  isConfigLoaded = true;
+  safeEnsureDataDir();
   try {
     fs.writeFileSync(CONFIG_FILE, JSON.stringify(newConfig, null, 2), 'utf-8');
     return true;
   } catch (err) {
-    console.error('Error saving config file:', err);
-    return false;
+    // File writing failed in serverless, in-memory updated
+    return true;
   }
 }
 
 // Get all orders
 export function getOrders(): Order[] {
-  ensureDataDir();
-  if (!fs.existsSync(ORDERS_FILE)) {
-    fs.writeFileSync(ORDERS_FILE, JSON.stringify([], null, 2), 'utf-8');
-    return [];
+  if (isOrdersLoaded) {
+    return memoryOrders;
   }
+
   try {
-    const raw = fs.readFileSync(ORDERS_FILE, 'utf-8');
-    return JSON.parse(raw);
+    if (fs.existsSync(ORDERS_FILE)) {
+      const raw = fs.readFileSync(ORDERS_FILE, 'utf-8');
+      memoryOrders = JSON.parse(raw) || [];
+      isOrdersLoaded = true;
+      return memoryOrders;
+    }
   } catch (err) {
-    console.error('Error reading orders file:', err);
-    return [];
+    // Fallback
   }
+
+  isOrdersLoaded = true;
+  return memoryOrders;
 }
 
 // Save order
 export function saveOrder(order: Order): boolean {
-  ensureDataDir();
+  const orders = getOrders();
+  const existingIndex = orders.findIndex((o) => o.id === order.id);
+  if (existingIndex >= 0) {
+    orders[existingIndex] = order;
+  } else {
+    orders.unshift(order);
+  }
+  memoryOrders = orders;
+  isOrdersLoaded = true;
+
+  safeEnsureDataDir();
   try {
-    const orders = getOrders();
-    const existingIndex = orders.findIndex((o) => o.id === order.id);
-    if (existingIndex >= 0) {
-      orders[existingIndex] = order;
-    } else {
-      orders.unshift(order);
-    }
     fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 2), 'utf-8');
     return true;
   } catch (err) {
-    console.error('Error saving order:', err);
-    return false;
+    return true;
   }
 }
 
 // Delete order
 export function deleteOrder(id: string): boolean {
-  ensureDataDir();
+  const orders = getOrders();
+  const filtered = orders.filter((o) => o.id !== id);
+  if (filtered.length === orders.length) return false;
+  memoryOrders = filtered;
+  isOrdersLoaded = true;
+
+  safeEnsureDataDir();
   try {
-    const orders = getOrders();
-    const filtered = orders.filter((o) => o.id !== id);
-    if (filtered.length === orders.length) return false;
     fs.writeFileSync(ORDERS_FILE, JSON.stringify(filtered, null, 2), 'utf-8');
     return true;
   } catch (err) {
-    console.error('Error deleting order:', err);
-    return false;
+    return true;
   }
 }
 
 // Update order fields
 export function updateOrder(id: string, fields: Partial<Order>): Order | null {
-  ensureDataDir();
+  const orders = getOrders();
+  const index = orders.findIndex((o) => o.id === id);
+  if (index === -1) return null;
+  const updated = {
+    ...orders[index],
+    ...fields,
+    updatedAt: new Date().toISOString(),
+  };
+  orders[index] = updated;
+  memoryOrders = orders;
+  isOrdersLoaded = true;
+
+  safeEnsureDataDir();
   try {
-    const orders = getOrders();
-    const index = orders.findIndex((o) => o.id === id);
-    if (index === -1) return null;
-    const updated = {
-      ...orders[index],
-      ...fields,
-      updatedAt: new Date().toISOString(),
-    };
-    orders[index] = updated;
     fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 2), 'utf-8');
-    return updated;
   } catch (err) {
-    console.error('Error updating order:', err);
-    return null;
+    // Ignore serverless write error
   }
+  return updated;
 }
 
 // Find order by ID
@@ -142,35 +172,42 @@ export function findOrderByTrxId(trxId: string): Order | null {
 
 // --- SMS Transaction Cache & Webhook Log ---
 export function getTransactions(): ParsedMfsSms[] {
-  ensureDataDir();
-  if (!fs.existsSync(TRANSACTIONS_FILE)) {
-    fs.writeFileSync(TRANSACTIONS_FILE, JSON.stringify([], null, 2), 'utf-8');
-    return [];
+  if (isTransactionsLoaded) {
+    return memoryTransactions;
   }
+
   try {
-    const raw = fs.readFileSync(TRANSACTIONS_FILE, 'utf-8');
-    return JSON.parse(raw);
+    if (fs.existsSync(TRANSACTIONS_FILE)) {
+      const raw = fs.readFileSync(TRANSACTIONS_FILE, 'utf-8');
+      memoryTransactions = JSON.parse(raw) || [];
+      isTransactionsLoaded = true;
+      return memoryTransactions;
+    }
   } catch (err) {
-    return [];
+    // Fallback
   }
+
+  isTransactionsLoaded = true;
+  return memoryTransactions;
 }
 
 export function saveTransaction(trx: ParsedMfsSms): boolean {
-  ensureDataDir();
+  const list = getTransactions();
+  const cleanTrx = trx.trxId.trim().toUpperCase();
+  const exists = list.find((t) => t.trxId.trim().toUpperCase() === cleanTrx);
+  if (!exists) {
+    list.unshift(trx);
+    if (list.length > 200) list.pop();
+  }
+  memoryTransactions = list;
+  isTransactionsLoaded = true;
+
+  safeEnsureDataDir();
   try {
-    const list = getTransactions();
-    const cleanTrx = trx.trxId.trim().toUpperCase();
-    const exists = list.find((t) => t.trxId.trim().toUpperCase() === cleanTrx);
-    if (!exists) {
-      list.unshift(trx);
-      // Keep up to 200 recent incoming SMS logs
-      if (list.length > 200) list.pop();
-      fs.writeFileSync(TRANSACTIONS_FILE, JSON.stringify(list, null, 2), 'utf-8');
-    }
+    fs.writeFileSync(TRANSACTIONS_FILE, JSON.stringify(list, null, 2), 'utf-8');
     return true;
   } catch (err) {
-    console.error('Error saving transaction log:', err);
-    return false;
+    return true;
   }
 }
 
@@ -183,25 +220,23 @@ export function findTransactionByTrxId(trxId: string): ParsedMfsSms | null {
 
 // Verify Admin credentials
 export function verifyAdmin(user: string, pass: string): boolean {
-  ensureDataDir();
-  if (!fs.existsSync(ADMIN_FILE)) {
-    const defaultAdmin = { username: 'admin', password: 'Aumi51260' };
-    fs.writeFileSync(ADMIN_FILE, JSON.stringify(defaultAdmin, null, 2), 'utf-8');
-    return (user.toLowerCase() === 'admin' || user.toLowerCase() === 'aumi') && pass === defaultAdmin.password;
-  }
+  const defaultAdmin = { username: 'admin', password: 'Aumi51260' };
   try {
-    const raw = fs.readFileSync(ADMIN_FILE, 'utf-8');
-    const admin = JSON.parse(raw);
-    const validUser = user.toLowerCase() === admin.username.toLowerCase() || user.toLowerCase() === 'admin' || user.toLowerCase() === 'aumi';
-    return validUser && pass === admin.password;
+    if (fs.existsSync(ADMIN_FILE)) {
+      const raw = fs.readFileSync(ADMIN_FILE, 'utf-8');
+      const admin = JSON.parse(raw);
+      const validUser = user.toLowerCase() === admin.username.toLowerCase() || user.toLowerCase() === 'admin' || user.toLowerCase() === 'aumi';
+      return validUser && pass === admin.password;
+    }
   } catch (err) {
-    return (user.toLowerCase() === 'admin' || user.toLowerCase() === 'aumi') && pass === 'Aumi51260';
+    // Fallback
   }
+  return (user.toLowerCase() === 'admin' || user.toLowerCase() === 'aumi') && pass === defaultAdmin.password;
 }
 
 // Change Admin credentials
 export function updateAdminCredentials(user: string, pass: string): boolean {
-  ensureDataDir();
+  safeEnsureDataDir();
   try {
     fs.writeFileSync(ADMIN_FILE, JSON.stringify({ username: user, password: pass }, null, 2), 'utf-8');
     return true;
