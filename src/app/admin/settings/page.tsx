@@ -31,7 +31,7 @@ export default function AdminSettingsPage() {
   const [copiedKey, setCopiedKey] = useState(false);
 
   // SMS Tester State
-  const [testSms, setTestSms] = useState('You have received Tk 499.00 from 01712345678. Ref . Fee Tk 0.00. Balance Tk 5,450.00. TrxID 9J7X8KL9 at 24/08/2026 16:10');
+  const [testSms, setTestSms] = useState('You have received Tk 299.00 from 01712345678. Ref . Fee Tk 0.00. Balance Tk 5,450.00. TrxID 9J7X8KL9 at 25/08/2026 16:10');
   const [testingSms, setTestingSms] = useState(false);
   const [testResult, setTestResult] = useState<any>(null);
 
@@ -233,21 +233,21 @@ export default function AdminSettingsPage() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setTestSms('You have received Tk 499.00 from 01712345678. Ref . Fee Tk 0.00. Balance Tk 5,450.00. TrxID 9J7X8KL9 at 24/08/2026 16:10')}
+                onClick={() => setTestSms('You have received Tk 299.00 from 01712345678. Ref . Fee Tk 0.00. Balance Tk 5,450.00. TrxID 9J7X8KL9 at 25/08/2026 16:10')}
                 className="px-2.5 py-1 rounded-lg bg-slate-900 border border-pink-500/40 text-[10px] text-pink-400 hover:bg-slate-800"
               >
                 বিকাশ স্যাম্পল
               </button>
               <button
                 type="button"
-                onClick={() => setTestSms('Money Received. Amount: Tk 499.00. Sender: 01812345678. TxnID: 71G78KL9. Balance: Tk 1,200.00')}
+                onClick={() => setTestSms('Money Received. Amount: Tk 299.00. Sender: 01812345678. TxnID: 71G78KL9. Balance: Tk 1,200.00')}
                 className="px-2.5 py-1 rounded-lg bg-slate-900 border border-orange-500/40 text-[10px] text-orange-400 hover:bg-slate-800"
               >
                 নগদ স্যাম্পল
               </button>
               <button
                 type="button"
-                onClick={() => setTestSms('Tk499.00 received from 01912345678. TxnId: 1928374650. Balance: Tk 8,900.00')}
+                onClick={() => setTestSms('Tk299.00 received from 01912345678. TxnId: 1928374650. Balance: Tk 8,900.00')}
                 className="px-2.5 py-1 rounded-lg bg-slate-900 border border-purple-500/40 text-[10px] text-purple-400 hover:bg-slate-800"
               >
                 রকেট স্যাম্পল

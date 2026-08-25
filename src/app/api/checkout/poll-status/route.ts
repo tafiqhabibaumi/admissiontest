@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     const orderId = url.searchParams.get('orderId');
     const phone = url.searchParams.get('phone');
     const amountStr = url.searchParams.get('amount');
-    const amount = amountStr ? parseFloat(amountStr) : 499;
+    const amount = amountStr ? parseFloat(amountStr) : 299;
 
     if (!orderId) {
       return NextResponse.json({ error: 'Order ID is required' }, { status: 400 });

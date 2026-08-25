@@ -23,7 +23,7 @@ export default function StickyCtaBar({ onOpenCheckout, product }: StickyCtaBarPr
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const discountPrice = product?.discountPrice || 499;
+  const discountPrice = product?.discountPrice || 299;
   const originalPrice = product?.originalPrice || 999;
 
   return (

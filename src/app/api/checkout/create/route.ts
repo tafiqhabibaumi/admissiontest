@@ -21,7 +21,7 @@ export async function POST(request: Request) {
 
     const config = getSiteConfig();
     const product = config.product;
-    const amount = product.discountPrice || 499;
+    const amount = product.discountPrice || 299;
 
     const origin = request.headers.get('origin') || 'http://localhost:3000';
 

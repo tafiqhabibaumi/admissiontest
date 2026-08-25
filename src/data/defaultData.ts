@@ -780,7 +780,7 @@ export const defaultSiteConfig: SiteConfig = {
     subtitle: 'পদার্থবিজ্ঞান, রসায়ন ও উচ্চতর গণিতের ৫০টি অধ্যায়ের প্রায়োরিটি অ্যানালাইসিস + ৩ মাসের ১২ সপ্তাহের ডে-বাই-ডে কমপ্লিট স্টাডি প্ল্যান ও মিস্টেক ট্র্যাকার।',
     tag: 'একক কমপ্লিট মাস্টার এডিশন (All-in-One)',
     originalPrice: 999,
-    discountPrice: 499,
+    discountPrice: 299,
     pdfFileName: 'all_science_admission_master_guide_2025.pdf',
     universitiesCovered: ['BUET', 'CUET', 'RUET', 'KUET', 'IUT', 'DU A-Unit', 'BUTEX', 'GST Science'],
     features: [

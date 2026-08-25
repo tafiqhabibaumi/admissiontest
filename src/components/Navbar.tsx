@@ -158,7 +158,7 @@ export default function Navbar({ onOpenCheckout, whatsappNumber = "+880170000000
               ⏰ ৬-ব্লকের টেকসই দৈনিক রুটিন
             </button>
             <button onClick={() => scrollToSection('pricing')} className="block w-full text-left py-2 text-xs font-semibold text-slate-200 hover:text-emerald-400 border-b border-slate-900">
-              ⚡ সম্পূর্ণ মাস্টার গাইড ফি (৳৪৯৯)
+              ⚡ সম্পূর্ণ মাস্টার গাইড ফি (৳২৯৯)
             </button>
             <button onClick={() => scrollToSection('testimonials')} className="block w-full text-left py-2 text-xs font-semibold text-slate-200 hover:text-emerald-400 border-b border-slate-900">
               💬 শিক্ষার্থীদের রিভিউ
