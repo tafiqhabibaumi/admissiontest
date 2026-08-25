@@ -794,9 +794,9 @@ export const defaultSiteConfig: SiteConfig = {
     ]
   },
   contact: {
-    whatsappNumber: '+8801700000000',
+    whatsappNumber: '+8801760470298',
     supportEmail: 'support@admissionguide.bd',
-    helpline: '+8801800000000',
+    helpline: '01760470298',
     facebookPageUrl: 'https://facebook.com'
   },
   metaTracking: {
@@ -806,9 +806,9 @@ export const defaultSiteConfig: SiteConfig = {
     enabled: true
   },
   paymentSettings: {
-    bkashMerchantNumber: '01700000000',
-    nagadMerchantNumber: '01800000000',
-    rocketMerchantNumber: '01900000000',
+    bkashMerchantNumber: '01760470298',
+    nagadMerchantNumber: '01760470298',
+    rocketMerchantNumber: '01760470298',
     smsWebhookKey: 'AumiWebhook2026'
   },
   emailSettings: {

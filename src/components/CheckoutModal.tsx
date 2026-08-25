@@ -256,10 +256,10 @@ export default function CheckoutModal({
 
   const currentNumber =
     paymentMode === 'manual_bkash'
-      ? (paymentSettings?.bkashMerchantNumber || '01700000000')
+      ? (paymentSettings?.bkashMerchantNumber || '01760470298')
       : paymentMode === 'manual_nagad'
-      ? (paymentSettings?.nagadMerchantNumber || '01700000000')
-      : (paymentSettings?.rocketMerchantNumber || '01700000000');
+      ? (paymentSettings?.nagadMerchantNumber || '01760470298')
+      : (paymentSettings?.rocketMerchantNumber || '01760470298');
 
   const providerName =
     paymentMode === 'manual_bkash' ? 'বিকাশ' : paymentMode === 'manual_nagad' ? 'নগদ' : 'রকেট';
