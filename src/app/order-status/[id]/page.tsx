@@ -41,6 +41,26 @@ export default function OrderStatusPage() {
           setOrder(found);
           if (found.paymentStatus === 'completed') {
             triggerConfetti();
+
+            // Track Purchase conversion once per session with Advanced Matching
+            const purchaseKey = `purchase_tracked_${found.id}`;
+            if (!sessionStorage.getItem(purchaseKey)) {
+              sessionStorage.setItem(purchaseKey, '1');
+              trackPixelEvent(
+                'Purchase',
+                {
+                  value: found.amount,
+                  currency: 'BDT',
+                  content_name: found.packageTitle,
+                  order_id: found.id,
+                },
+                {
+                  email: found.customerEmail,
+                  phone: found.customerPhone,
+                  firstName: found.customerName,
+                }
+              );
+            }
           }
         }
       }

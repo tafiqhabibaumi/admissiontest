@@ -137,13 +137,21 @@ export default function CheckoutModal({
     setIsSubmitting(true);
 
     try {
-      trackPixelEvent('InitiateCheckout', {
-        content_name: product.title,
-        content_category: 'Admission Master Guide',
-        value: product.discountPrice,
-        currency: 'BDT',
-        num_items: 1,
-      });
+      trackPixelEvent(
+        'InitiateCheckout',
+        {
+          content_name: product.title,
+          content_category: 'Admission Master Guide',
+          value: product.discountPrice || 299,
+          currency: 'BDT',
+          num_items: 1,
+        },
+        {
+          email: email.trim(),
+          phone: senderPhone.trim(),
+          firstName: name.trim(),
+        }
+      );
 
       const res = await fetch('/api/checkout/create', {
         method: 'POST',

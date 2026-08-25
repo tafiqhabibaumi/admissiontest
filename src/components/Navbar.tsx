@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Sparkles, MessageCircle, Zap, Menu, X, BookOpen } from 'lucide-react';
 import { toBengaliNumber } from '@/lib/utils';
+import { trackPixelEvent } from './MetaPixel';
 
 interface NavbarProps {
   onOpenCheckout?: () => void;
@@ -117,6 +118,7 @@ export default function Navbar({ onOpenCheckout, whatsappNumber = "+880170000000
               href={`https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}`}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackPixelEvent('Contact', { channel: 'whatsapp' })}
               className="hidden md:flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors"
             >
               <MessageCircle className="w-3.5 h-3.5" />
@@ -171,6 +173,7 @@ export default function Navbar({ onOpenCheckout, whatsappNumber = "+880170000000
                 href={`https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}`}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => trackPixelEvent('Contact', { channel: 'whatsapp' })}
                 className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold"
               >
                 <MessageCircle className="w-4 h-4" />
