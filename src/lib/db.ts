@@ -190,6 +190,35 @@ export function findPendingOrderByPhoneAndAmount(phone: string, amount: number):
   }) || null;
 }
 
+// Find existing completed/verified order by Phone or Email (Lifetime Access Guarantee)
+export function findCompletedOrderByPhoneOrEmail(phone?: string, email?: string): Order | null {
+  if (!phone && !email) return null;
+  const cleanPhone = phone ? normalizePhoneNumber(phone) : '';
+  const cleanEmail = email ? email.trim().toLowerCase() : '';
+  const orders = getOrders();
+
+  return orders.find((o) => {
+    if (o.paymentStatus !== 'completed') return false;
+
+    if (cleanPhone) {
+      const orderPhone = normalizePhoneNumber(o.customerPhone);
+      if (
+        orderPhone === cleanPhone ||
+        (cleanPhone.length >= 10 && orderPhone.slice(-10) === cleanPhone.slice(-10)) ||
+        (orderPhone.length >= 10 && cleanPhone.slice(-10) === orderPhone.slice(-10))
+      ) {
+        return true;
+      }
+    }
+
+    if (cleanEmail && o.customerEmail && o.customerEmail.trim().toLowerCase() === cleanEmail) {
+      return true;
+    }
+
+    return false;
+  }) || null;
+}
+
 // --- SMS Transaction Cache & Webhook Log ---
 export function getTransactions(): ParsedMfsSms[] {
   if (isTransactionsLoaded) {

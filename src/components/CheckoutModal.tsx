@@ -19,7 +19,8 @@ import {
   Radio,
   CheckCircle2,
   RefreshCw,
-  Clock
+  Clock,
+  History
 } from 'lucide-react';
 import { SingleProductConfig, SiteConfig } from '@/types';
 import { formatBDT } from '@/lib/utils';
@@ -50,10 +51,16 @@ export default function CheckoutModal({
   const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
   const [verifyCountdown, setVerifyCountdown] = useState(30);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('পেমেন্ট ভেরিফাইড! 🎉');
   const [errorMsg, setErrorMsg] = useState('');
   const [copied, setCopied] = useState(false);
   const [showManualTrx, setShowManualTrx] = useState(false);
   const [manualTrxId, setManualTrxId] = useState('');
+
+  // Lifetime Access Recovery Mode
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
+  const [recoveryQuery, setRecoveryQuery] = useState('');
+  const [isRecovering, setIsRecovering] = useState(false);
 
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -98,6 +105,7 @@ export default function CheckoutModal({
           if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
           if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
           
+          setSuccessMessage('পেমেন্ট সফলভাবে ভেরিফাইড! 🎉');
           setIsSuccess(true);
           setTimeout(() => {
             window.location.href = `/order-status/${orderId}?success=1`;
@@ -157,12 +165,25 @@ export default function CheckoutModal({
         throw new Error(data.error || 'চেকআউট তৈরিতে সমস্যা হয়েছে');
       }
 
-      // If already matched with pre-arrived SMS
-      if (data.autoVerified) {
+      // Check if user already paid previously (Lifetime Access)
+      if (data.alreadyPaid) {
+        setSuccessMessage('🎉 আপনার পূর্ববর্তী পেমেন্ট রেকর্ড পাওয়া গেছে! লাইফটাইম এক্সেস রিস্টোর করা হলো...');
+        setIsRealtimeVerifying(true);
         setIsSuccess(true);
         setTimeout(() => {
           window.location.href = `/order-status/${data.orderId}?success=1`;
-        }, 800);
+        }, 1200);
+        return;
+      }
+
+      // If already matched with pre-arrived SMS
+      if (data.autoVerified) {
+        setSuccessMessage('পেমেন্ট সফলভাবে ভেরিফাইড! 🎉');
+        setIsRealtimeVerifying(true);
+        setIsSuccess(true);
+        setTimeout(() => {
+          window.location.href = `/order-status/${data.orderId}?success=1`;
+        }, 900);
       } else {
         // Start real-time live SMS tracking radar
         setIsSubmitting(false);
@@ -171,6 +192,43 @@ export default function CheckoutModal({
     } catch (err: any) {
       setErrorMsg(err.message || 'একটি ত্রুটি ঘটেছে। পুনরায় চেষ্টা করুন।');
       setIsSubmitting(false);
+    }
+  };
+
+  // Instant Lifetime Access Recovery by Phone Number or Email
+  const handleRecoverySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg('');
+
+    if (!recoveryQuery.trim()) {
+      setErrorMsg('যে নম্বর বা ইমেইল দিয়ে পূর্বে অর্ডার করেছিলেন তা লিখুন');
+      return;
+    }
+
+    setIsRecovering(true);
+
+    try {
+      const res = await fetch('/api/checkout/restore-access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: recoveryQuery.trim() }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.found) {
+        throw new Error(data.error || 'এই নম্বরে কোনো ভেরিফাইড অর্ডার পাওয়া যায়নি।');
+      }
+
+      setSuccessMessage('🎉 আপনার লাইফটাইম এক্সেস নিশ্চিত হয়েছে! সরাসরি ডাউনলোড পেজে নিয়ে যাওয়া হচ্ছে...');
+      setIsRealtimeVerifying(true);
+      setIsSuccess(true);
+      setTimeout(() => {
+        window.location.href = `/order-status/${data.orderId}?success=1`;
+      }, 1200);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'রিকভারিতে সমস্যা হয়েছে');
+      setIsRecovering(false);
     }
   };
 
@@ -225,7 +283,7 @@ export default function CheckoutModal({
             <X className="w-5 h-5" />
           </button>
 
-          {/* ================= REALTIME LIVE VERIFICATION RADAR SCREEN ================= */}
+          {/* ================= REALTIME LIVE VERIFICATION / SUCCESS SCREEN ================= */}
           {isRealtimeVerifying ? (
             <div className="text-center py-6 sm:py-8 space-y-5">
               {isSuccess ? (
@@ -234,10 +292,10 @@ export default function CheckoutModal({
                     <CheckCircle2 className="w-9 h-9" />
                   </div>
                   <h3 className="text-xl sm:text-2xl font-black text-white">
-                    পেমেন্ট ভেরিফাইড! 🎉
+                    {successMessage}
                   </h3>
                   <p className="text-xs text-emerald-300">
-                    আপনার অর্ডার নিশ্চিত হয়েছে। ডাউনলোড পেজে নিয়ে যাওয়া হচ্ছে...
+                    আপনার লাইফটাইম এক্সেস নিশ্চিত হয়েছে। ডাউনলোড পেজে নিয়ে যাওয়া হচ্ছে...
                   </p>
                 </div>
               ) : (
@@ -296,16 +354,102 @@ export default function CheckoutModal({
                 </div>
               )}
             </div>
+          ) : isRecoveryMode ? (
+            /* ================= LIFETIME ACCESS RESTORATION SCREEN ================= */
+            <div className="space-y-4">
+              <div className="text-left mb-2">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[11px] font-bold font-mono flex items-center gap-1">
+                    <History className="w-3 h-3" /> লাইফটাইম এক্সেস রিকভারি
+                  </span>
+                </div>
+                <h3 className="text-xl sm:text-2xl font-extrabold text-white leading-normal">
+                  আপনার পূর্বের কেনা PDF পুনরুদ্ধার করুন
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  আপনি যে মোবাইল নম্বর বা ইমেইল দিয়ে পূর্বে টাকা দিয়েছিলেন, সেটি লিখুন:
+                </p>
+              </div>
+
+              {errorMsg && (
+                <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-500/50 text-rose-300 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleRecoverySubmit} className="space-y-3.5">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    আপনার পূর্বের মোবাইল নম্বর বা ইমেইল <span className="text-rose-400">*</span>
+                  </label>
+                  <div className="relative">
+                    <Phone className="w-4 h-4 text-emerald-400 absolute left-3 top-3" />
+                    <input
+                      type="text"
+                      required
+                      placeholder="যেমন: 017XXXXXXXX অথবা ইমেইল"
+                      value={recoveryQuery}
+                      onChange={(e) => setRecoveryQuery(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 focus:border-emerald-400 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white focus:outline-none font-mono text-sm"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isRecovering}
+                  className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-emerald-600 text-white font-extrabold text-sm shadow-xl flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  {isRecovering ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>ভেরিফাই করা হচ্ছে...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+                      <span>আমার এক্সেস পুনরুদ্ধার ও ডাউনলোড করুন</span>
+                    </>
+                  )}
+                </button>
+
+                <div className="text-center pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsRecoveryMode(false);
+                      setErrorMsg('');
+                    }}
+                    className="text-xs text-slate-400 hover:text-white transition-colors underline"
+                  >
+                    ← নতুন অর্ডার ফর্মে ফিরে যান
+                  </button>
+                </div>
+              </form>
+            </div>
           ) : (
-            /* ================= CHECKOUT FORM SCREEN ================= */
+            /* ================= REGULAR CHECKOUT FORM SCREEN ================= */
             <>
               {/* Modal Header */}
-              <div className="text-left mb-3 sm:mb-5">
-                <div className="flex items-center gap-2 mb-1.5">
+              <div className="text-left mb-3 sm:mb-4">
+                <div className="flex items-center justify-between gap-2 mb-1.5">
                   <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-bold font-mono">
                     ⚡ ইনস্ট্যান্ট অটো-ভেরিফিকেশন
                   </span>
-                  <span className="text-[11px] text-slate-400 font-medium">কোনো TrxID টাইপ করতে হবে না</span>
+                  
+                  {/* Quick Recovery Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsRecoveryMode(true);
+                      setErrorMsg('');
+                    }}
+                    className="text-[11px] text-indigo-400 hover:text-indigo-300 font-semibold underline flex items-center gap-1"
+                  >
+                    <History className="w-3 h-3" />
+                    <span>পূর্বে কিনেছেন?</span>
+                  </button>
                 </div>
                 <h3 className="text-xl sm:text-2xl font-extrabold text-white leading-normal">
                   মাস্টার গাইডটি আনলক করুন
@@ -313,10 +457,10 @@ export default function CheckoutModal({
               </div>
 
               {/* Product Summary Box */}
-              <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-950 border border-white/10 mb-4 flex items-center justify-between shadow-inner">
+              <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-950 border border-white/10 mb-3.5 flex items-center justify-between shadow-inner">
                 <div>
                   <p className="text-xs sm:text-sm font-bold text-white leading-snug">{product.title}</p>
-                  <span className="text-[11px] text-emerald-400 font-mono font-semibold">৫০টি অধ্যায় + ১২ সপ্তাহের প্ল্যান</span>
+                  <span className="text-[11px] text-emerald-400 font-mono font-semibold">৫০টি অধ্যায় + ১২ সপ্তাহের প্ল্যান • লাইফটাইম এক্সেস</span>
                 </div>
                 <div className="text-right pl-3 flex-shrink-0">
                   <span className="text-lg sm:text-xl font-black text-emerald-400 block font-mono">
@@ -471,8 +615,8 @@ export default function CheckoutModal({
                   </div>
                 </div>
 
-                {/* Optional TrxID toggle if user specifically wants it */}
-                <div className="pt-1">
+                {/* Optional TrxID toggle */}
+                <div className="pt-0.5">
                   <button
                     type="button"
                     onClick={() => setShowManualTrx(!showManualTrx)}
@@ -502,7 +646,7 @@ export default function CheckoutModal({
                     </p>
                   </div>
                   <div className="text-right text-[10px] text-slate-400">
-                    <span className="text-emerald-400 font-bold block">✓ অটো-ভেরিফিকেশন</span>
+                    <span className="text-emerald-400 font-bold block">✓ আজীবন এক্সেস</span>
                     <span>ইনস্ট্যান্ট PDF ডাউনলোড</span>
                   </div>
                 </div>
@@ -533,7 +677,7 @@ export default function CheckoutModal({
                 </span>
                 <span>•</span>
                 <span className="flex items-center gap-1">
-                  <Download className="w-3.5 h-3.5 text-indigo-400" /> ইনস্ট্যান্ট এক্সেস
+                  <Download className="w-3.5 h-3.5 text-indigo-400" /> আজীবন এক্সেস
                 </span>
               </div>
             </>

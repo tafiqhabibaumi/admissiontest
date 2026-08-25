@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSiteConfig, saveOrder, findTransactionByTrxId, findTransactionByPhoneAndAmount } from '@/lib/db';
+import { getSiteConfig, saveOrder, findTransactionByTrxId, findTransactionByPhoneAndAmount, findCompletedOrderByPhoneOrEmail } from '@/lib/db';
 import { Order } from '@/types';
 import { generateOrderId, generateToken } from '@/lib/utils';
 import { sendSuggestionEmail } from '@/lib/mailer';
@@ -24,6 +24,23 @@ export async function POST(request: Request) {
     const amount = product.discountPrice || 499;
 
     const origin = request.headers.get('origin') || 'http://localhost:3000';
+
+    // 0. LIFETIME ACCESS: Check if this phone number or email already paid in the past
+    const existingCompletedOrder = findCompletedOrderByPhoneOrEmail(effectivePhone, email);
+    if (existingCompletedOrder) {
+      // Re-send fresh download email
+      sendSuggestionEmail(existingCompletedOrder, origin).catch(() => {});
+
+      return NextResponse.json({
+        success: true,
+        orderId: existingCompletedOrder.id,
+        amount: existingCompletedOrder.amount,
+        autoVerified: true,
+        alreadyPaid: true,
+        message: 'আপনার পূর্ববর্তী পেমেন্ট ভেরিফাইড পাওয়া গেছে! লাইফটাইম এক্সেস চালু রয়েছে।',
+      });
+    }
+
     const orderId = generateOrderId();
     const downloadToken = generateToken();
 
@@ -109,6 +126,7 @@ export async function POST(request: Request) {
       amount: amount,
       autoVerified: isAutoVerified,
       trxId: finalTrxId,
+      alreadyPaid: false,
     });
   } catch (error) {
     console.error('Checkout creation error:', error);
