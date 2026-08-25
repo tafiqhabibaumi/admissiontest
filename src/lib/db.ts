@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { SiteConfig, Order } from '@/types';
 import { defaultSiteConfig } from '@/data/defaultData';
-import { ParsedMfsSms } from '@/lib/smsParser';
+import { ParsedMfsSms, normalizePhoneNumber } from '@/lib/smsParser';
 
 const DATA_DIR = path.join(process.cwd(), 'data_storage');
 const CONFIG_FILE = path.join(DATA_DIR, 'config.json');
@@ -170,6 +170,26 @@ export function findOrderByTrxId(trxId: string): Order | null {
   ) || null;
 }
 
+// Find pending order matching sender phone and amount (for real-time auto-verification)
+export function findPendingOrderByPhoneAndAmount(phone: string, amount: number): Order | null {
+  if (!phone) return null;
+  const cleanPhone = normalizePhoneNumber(phone);
+  const orders = getOrders();
+
+  return orders.find((o) => {
+    if (o.paymentStatus !== 'pending') return false;
+    const amountMatch = Math.abs(o.amount - amount) <= 1;
+    if (!amountMatch) return false;
+
+    const orderPhone = normalizePhoneNumber(o.customerPhone);
+    return (
+      orderPhone === cleanPhone ||
+      orderPhone.slice(-10) === cleanPhone.slice(-10) ||
+      cleanPhone.slice(-10) === orderPhone.slice(-10)
+    );
+  }) || null;
+}
+
 // --- SMS Transaction Cache & Webhook Log ---
 export function getTransactions(): ParsedMfsSms[] {
   if (isTransactionsLoaded) {
@@ -197,7 +217,7 @@ export function saveTransaction(trx: ParsedMfsSms): boolean {
   const exists = list.find((t) => t.trxId.trim().toUpperCase() === cleanTrx);
   if (!exists) {
     list.unshift(trx);
-    if (list.length > 200) list.pop();
+    if (list.length > 300) list.pop();
   }
   memoryTransactions = list;
   isTransactionsLoaded = true;
@@ -216,6 +236,44 @@ export function findTransactionByTrxId(trxId: string): ParsedMfsSms | null {
   const cleanTrx = trxId.trim().toUpperCase();
   const list = getTransactions();
   return list.find((t) => t.trxId.trim().toUpperCase() === cleanTrx) || null;
+}
+
+// Find transaction by sender phone & amount (instant match without TrxID)
+export function findTransactionByPhoneAndAmount(
+  phone: string,
+  amount: number,
+  provider?: string
+): ParsedMfsSms | null {
+  if (!phone || !amount) return null;
+  const cleanPhone = normalizePhoneNumber(phone);
+  const list = getTransactions();
+
+  return list.find((t) => {
+    // 1. Amount match check (within ±1 Tk margin)
+    const amountMatch = Math.abs(t.amount - amount) <= 1;
+    if (!amountMatch) return false;
+
+    // 2. Sender phone match check
+    if (t.senderPhone) {
+      const cleanSender = normalizePhoneNumber(t.senderPhone);
+      if (
+        cleanSender === cleanPhone ||
+        cleanSender.slice(-10) === cleanPhone.slice(-10) ||
+        cleanPhone.slice(-10) === cleanSender.slice(-10)
+      ) {
+        return true;
+      }
+    }
+
+    // 3. Raw SMS text fallback match
+    const rawDigits = t.rawSms.replace(/[^0-9]/g, '');
+    const phoneDigits = cleanPhone.slice(-10);
+    if (rawDigits.includes(phoneDigits)) {
+      return true;
+    }
+
+    return false;
+  }) || null;
 }
 
 // Verify Admin credentials

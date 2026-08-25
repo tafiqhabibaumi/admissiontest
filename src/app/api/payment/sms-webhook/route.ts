@@ -1,35 +1,53 @@
 import { NextResponse } from 'next/server';
-import { getSiteConfig, getOrders, saveOrder, saveTransaction } from '@/lib/db';
-import { parseMfsSms } from '@/lib/smsParser';
+import { getSiteConfig, getOrders, saveOrder, saveTransaction, findPendingOrderByPhoneAndAmount } from '@/lib/db';
+import { parseMfsSms, normalizePhoneNumber } from '@/lib/smsParser';
 import { sendSuggestionEmail } from '@/lib/mailer';
 import { sendMetaCapiEvent } from '@/lib/meta-capi';
 
 export const dynamic = 'force-dynamic';
 
-// Process and match incoming SMS transaction with pending orders
+// Process and match incoming SMS transaction with pending orders in realtime
 async function processIncomingSms(smsText: string, origin: string) {
   const parsed = parseMfsSms(smsText);
-  if (!parsed || !parsed.trxId) {
-    return { success: false, error: 'Could not extract valid TrxID from SMS text' };
+  if (!parsed || (!parsed.trxId && parsed.amount <= 0)) {
+    return { success: false, error: 'Could not extract valid transaction from SMS text' };
   }
 
   // 1. Save to transactions ledger buffer
   saveTransaction(parsed);
 
-  const cleanTrx = parsed.trxId.trim().toUpperCase();
+  const cleanTrx = parsed.trxId ? parsed.trxId.trim().toUpperCase() : '';
+  const senderDigits = parsed.senderPhone ? normalizePhoneNumber(parsed.senderPhone) : '';
 
-  // 2. Search pending orders
+  // 2. Search pending orders by Phone & Amount OR by TrxID
   const orders = getOrders();
-  const matchedOrder = orders.find(
-    (o) =>
-      o.paymentStatus === 'pending' &&
-      o.manualTrxId &&
-      o.manualTrxId.trim().toUpperCase() === cleanTrx
-  );
+  let matchedOrder = orders.find((o) => {
+    if (o.paymentStatus !== 'pending') return false;
+
+    // Check TrxID match if provided
+    if (cleanTrx && o.manualTrxId && o.manualTrxId.trim().toUpperCase() === cleanTrx) {
+      return true;
+    }
+
+    // Check Phone & Amount match (realtime auto-verification)
+    if (senderDigits && o.customerPhone && Math.abs(o.amount - parsed.amount) <= 1) {
+      const orderPhone = normalizePhoneNumber(o.customerPhone);
+      if (
+        orderPhone === senderDigits ||
+        orderPhone.slice(-10) === senderDigits.slice(-10) ||
+        senderDigits.slice(-10) === orderPhone.slice(-10)
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  });
 
   if (matchedOrder) {
     matchedOrder.paymentStatus = 'completed';
-    matchedOrder.transactionId = cleanTrx;
+    matchedOrder.transactionId = cleanTrx || matchedOrder.manualTrxId || `TRX-${Date.now().toString(36).toUpperCase()}`;
+    matchedOrder.manualTrxId = matchedOrder.transactionId;
     matchedOrder.updatedAt = new Date().toISOString();
 
     saveOrder(matchedOrder);
@@ -66,6 +84,7 @@ async function processIncomingSms(smsText: string, origin: string) {
       matched: true,
       orderId: matchedOrder.id,
       customerName: matchedOrder.customerName,
+      customerPhone: matchedOrder.customerPhone,
       trxId: cleanTrx,
       amount: parsed.amount,
       provider: parsed.provider,
@@ -75,9 +94,10 @@ async function processIncomingSms(smsText: string, origin: string) {
   return {
     success: true,
     matched: false,
-    message: 'SMS parsed and logged to buffer. Awaiting customer checkout submission.',
+    message: 'SMS parsed and logged to buffer. Ready for customer phone/amount verification.',
     trxId: cleanTrx,
     amount: parsed.amount,
+    senderPhone: parsed.senderPhone,
     provider: parsed.provider,
   };
 }
@@ -145,8 +165,8 @@ export async function GET(request: Request) {
   if (!smsText) {
     return NextResponse.json({
       status: 'active',
-      service: 'bKash / Nagad / Rocket Android SMS Webhook Auto-Validator',
-      usage: 'Send HTTP POST with { "message": "You have received Tk 499.00 from ... TrxID 9J7X8KL9" }',
+      service: 'bKash / Nagad / Rocket Realtime Auto-Validator',
+      usage: 'Send HTTP POST with { "message": "You have received Tk 499.00 from 017... TrxID ..." }',
     });
   }
 

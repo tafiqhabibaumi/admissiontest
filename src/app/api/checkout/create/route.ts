@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSiteConfig, saveOrder, findTransactionByTrxId } from '@/lib/db';
+import { getSiteConfig, saveOrder, findTransactionByTrxId, findTransactionByPhoneAndAmount } from '@/lib/db';
 import { Order } from '@/types';
 import { generateOrderId, generateToken } from '@/lib/utils';
 import { sendSuggestionEmail } from '@/lib/mailer';
@@ -10,38 +10,48 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, email, phone, targetUniversity, hscBatch, paymentMethod, manualTrxId } = body;
+    const { name, email, phone, senderPhone, targetUniversity, hscBatch, paymentMethod, manualTrxId } = body;
 
-    if (!name || !email || !phone) {
+    // Use sender phone if provided, otherwise customer phone
+    const effectivePhone = (senderPhone || phone || '').trim();
+
+    if (!name || !email || !effectivePhone) {
       return NextResponse.json({ error: 'অনুগ্রহ করে আপনার নাম, ইমেইল ও মোবাইল নম্বর দিন' }, { status: 400 });
     }
 
     const config = getSiteConfig();
     const product = config.product;
+    const amount = product.discountPrice || 499;
 
     const origin = request.headers.get('origin') || 'http://localhost:3000';
     const orderId = generateOrderId();
     const downloadToken = generateToken();
 
-    // Check if the SMS for this TrxID already arrived via Webhook
+    // 1. Check if SMS already arrived matching phone & amount OR TrxID
     const cleanTrx = manualTrxId ? manualTrxId.trim().toUpperCase() : '';
-    const cachedTrx = cleanTrx ? findTransactionByTrxId(cleanTrx) : null;
+    let cachedTrx = cleanTrx ? findTransactionByTrxId(cleanTrx) : null;
+
+    if (!cachedTrx) {
+      cachedTrx = findTransactionByPhoneAndAmount(effectivePhone, amount);
+    }
+
     const isAutoVerified = !!cachedTrx;
+    const finalTrxId = cachedTrx ? cachedTrx.trxId : cleanTrx;
 
     const order: Order = {
       id: orderId,
       customerName: name,
       customerEmail: email,
-      customerPhone: phone,
+      customerPhone: effectivePhone,
       targetUniversity: targetUniversity || 'সকল বিশ্ববিদ্যালয় বিজ্ঞান ও ইঞ্জিনিয়ারিং',
       hscBatch: hscBatch || 'HSC 2024/2025',
       packageId: 'all-science-master-guide',
       packageTitle: product.title,
-      amount: product.discountPrice,
+      amount: amount,
       currency: 'BDT',
-      paymentMethod: paymentMethod || 'manual_bkash',
-      manualTrxId: cleanTrx || undefined,
-      transactionId: isAutoVerified ? cleanTrx : undefined,
+      paymentMethod: paymentMethod || (cachedTrx ? `manual_${cachedTrx.provider}` : 'manual_bkash'),
+      manualTrxId: finalTrxId || undefined,
+      transactionId: isAutoVerified ? finalTrxId : undefined,
       paymentStatus: isAutoVerified ? 'completed' : 'pending',
       downloadToken: downloadToken,
       downloadCount: 0,
@@ -58,19 +68,19 @@ export async function POST(request: Request) {
           order.emailSent = true;
           saveOrder(order);
         }
-      });
+      }).catch((err) => console.error('Auto-email sending error:', err));
 
       sendMetaCapiEvent({
         eventName: 'Purchase',
         eventSourceUrl: `${origin}/order-status/${order.id}`,
         userData: {
           email,
-          phone,
+          phone: effectivePhone,
           firstName: name,
         },
         customData: {
           currency: 'BDT',
-          value: product.discountPrice,
+          value: amount,
           contentName: product.title,
           orderId: orderId,
         },
@@ -81,12 +91,12 @@ export async function POST(request: Request) {
         eventSourceUrl: `${origin}/`,
         userData: {
           email,
-          phone,
+          phone: effectivePhone,
           firstName: name,
         },
         customData: {
           currency: 'BDT',
-          value: product.discountPrice,
+          value: amount,
           contentName: product.title,
           orderId: orderId,
         },
@@ -96,8 +106,9 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       orderId,
-      amount: product.discountPrice,
+      amount: amount,
       autoVerified: isAutoVerified,
+      trxId: finalTrxId,
     });
   } catch (error) {
     console.error('Checkout creation error:', error);
