@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import Script from 'next/script';
 
 interface MetaPixelProps {
@@ -39,11 +39,27 @@ export function trackPixelEvent(
   const eventId = customEventId || generateEventId(eventName.toLowerCase());
 
   // 1. Fire Browser Meta Pixel
-  if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
-    try {
-      window.fbq('track', eventName, params, { eventID: eventId });
-    } catch (e) {
-      console.warn('Browser Pixel warning:', e);
+  if (typeof window !== 'undefined') {
+    if (typeof window.fbq === 'function') {
+      try {
+        window.fbq('track', eventName, params, { eventID: eventId });
+      } catch (e) {
+        console.warn('Browser Pixel warning:', e);
+      }
+    } else {
+      window._fbq = window._fbq || [];
+      if (typeof window.fbq === 'undefined') {
+        window.fbq = function () {
+          window.fbq.callMethod ? window.fbq.callMethod.apply(window.fbq, arguments) : window.fbq.queue.push(arguments);
+        };
+        window.fbq.push = window.fbq;
+        window.fbq.loaded = true;
+        window.fbq.version = '2.0';
+        window.fbq.queue = [];
+      }
+      try {
+        window.fbq('track', eventName, params, { eventID: eventId });
+      } catch (e) {}
     }
   }
 
@@ -83,9 +99,11 @@ export function trackPixelEvent(
   return eventId;
 }
 
-export default function MetaPixel({ pixelId, enabled = true }: MetaPixelProps) {
+export default function MetaPixel({ pixelId = '1808726510148350', enabled = true }: MetaPixelProps) {
+  const activePixelId = pixelId || '1808726510148350';
+
   useEffect(() => {
-    if (!pixelId || !enabled || typeof window === 'undefined') return;
+    if (!activePixelId || !enabled || typeof window === 'undefined') return;
 
     // Capture fbclid from URL to set first-party _fbc cookie if present
     try {
@@ -99,15 +117,15 @@ export default function MetaPixel({ pixelId, enabled = true }: MetaPixelProps) {
 
     // Track PageView on mount with deduplication
     trackPixelEvent('PageView');
-  }, [pixelId, enabled]);
+  }, [activePixelId, enabled]);
 
-  if (!pixelId || !enabled) return null;
+  if (!enabled) return null;
 
   return (
     <>
       <Script
-        id="meta-pixel-script"
-        strategy="afterInteractive"
+        id="meta-pixel-init"
+        strategy="beforeInteractive"
         dangerouslySetInnerHTML={{
           __html: `
             !function(f,b,e,v,n,t,s)
@@ -118,7 +136,8 @@ export default function MetaPixel({ pixelId, enabled = true }: MetaPixelProps) {
             t.src=v;s=b.getElementsByTagName(e)[0];
             s.parentNode.insertBefore(t,s)}(window, document,'script',
             'https://connect.facebook.net/en_US/fbevents.js');
-            fbq('init', '${pixelId}');
+            fbq('init', '${activePixelId}');
+            fbq('track', 'PageView');
           `,
         }}
       />
@@ -127,7 +146,7 @@ export default function MetaPixel({ pixelId, enabled = true }: MetaPixelProps) {
           height="1"
           width="1"
           style={{ display: 'none' }}
-          src={`https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1`}
+          src={`https://www.facebook.com/tr?id=${activePixelId}&ev=PageView&noscript=1`}
           alt=""
         />
       </noscript>
