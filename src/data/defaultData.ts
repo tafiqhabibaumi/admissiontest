@@ -814,10 +814,10 @@ export const defaultSiteConfig: SiteConfig = {
   emailSettings: {
     smtpHost: 'smtp.gmail.com',
     smtpPort: 465,
-    smtpUser: '',
-    smtpPass: '',
+    smtpUser: 'kocchopgroup@gmail.com',
+    smtpPass: 'aysxdwcnsowhfljo',
     senderName: 'Science Admission Mentorship',
-    senderEmail: 'admissions@admissionguide.bd'
+    senderEmail: 'kocchopgroup@gmail.com'
   },
   chapters: allPdfChapters,
   testimonials: [

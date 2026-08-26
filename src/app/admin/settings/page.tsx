@@ -138,6 +138,7 @@ export default function AdminSettingsPage() {
       const res = await fetch('/api/admin/test-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config.emailSettings),
       });
 
       const data = await res.json();
