@@ -28,38 +28,85 @@ function safeEnsureDataDir() {
   }
 }
 
-// Get site config with robust fallback
+// Get site config with robust fallback and environment variable overrides
 export function getSiteConfig(): SiteConfig {
+  let baseConfig = { ...defaultSiteConfig };
+
   if (isConfigLoaded) {
-    return memoryConfig;
-  }
-
-  try {
-    if (fs.existsSync(CONFIG_FILE)) {
-      const raw = fs.readFileSync(CONFIG_FILE, 'utf-8');
-      const parsed = JSON.parse(raw);
-      memoryConfig = { ...defaultSiteConfig, ...parsed };
-      isConfigLoaded = true;
-      return memoryConfig;
+    baseConfig = memoryConfig;
+  } else {
+    try {
+      if (fs.existsSync(CONFIG_FILE)) {
+        const raw = fs.readFileSync(CONFIG_FILE, 'utf-8');
+        const parsed = JSON.parse(raw);
+        baseConfig = {
+          ...defaultSiteConfig,
+          ...parsed,
+          metaTracking: {
+            ...defaultSiteConfig.metaTracking,
+            ...(parsed?.metaTracking || {}),
+          },
+          paymentSettings: {
+            ...defaultSiteConfig.paymentSettings,
+            ...(parsed?.paymentSettings || {}),
+          },
+          emailSettings: {
+            ...defaultSiteConfig.emailSettings,
+            ...(parsed?.emailSettings || {}),
+          },
+        };
+      }
+    } catch (err) {
+      // Silently fallback to defaultSiteConfig
     }
-  } catch (err) {
-    // Silently fallback to defaultSiteConfig
+    memoryConfig = baseConfig;
+    isConfigLoaded = true;
   }
 
-  isConfigLoaded = true;
-  return memoryConfig;
+  // Support Environment Variable overrides for permanent Vercel persistence
+  const envPixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID || process.env.META_PIXEL_ID || '';
+  const envCapiToken = process.env.META_CAPI_TOKEN || process.env.META_CONVERSIONS_API_TOKEN || '';
+
+  if (envPixelId && (!baseConfig.metaTracking?.pixelId || baseConfig.metaTracking.pixelId === '')) {
+    baseConfig.metaTracking.pixelId = envPixelId;
+  }
+
+  if (envCapiToken && (!baseConfig.metaTracking?.conversionsApiToken || baseConfig.metaTracking.conversionsApiToken === '')) {
+    baseConfig.metaTracking.conversionsApiToken = envCapiToken;
+  }
+
+  return baseConfig;
 }
 
-// Save updated site config
+// Save updated site config with deep merge
 export function saveSiteConfig(newConfig: SiteConfig): boolean {
-  memoryConfig = { ...newConfig };
+  memoryConfig = {
+    ...defaultSiteConfig,
+    ...memoryConfig,
+    ...newConfig,
+    metaTracking: {
+      ...defaultSiteConfig.metaTracking,
+      ...memoryConfig?.metaTracking,
+      ...(newConfig?.metaTracking || {}),
+    },
+    paymentSettings: {
+      ...defaultSiteConfig.paymentSettings,
+      ...memoryConfig?.paymentSettings,
+      ...(newConfig?.paymentSettings || {}),
+    },
+    emailSettings: {
+      ...defaultSiteConfig.emailSettings,
+      ...memoryConfig?.emailSettings,
+      ...(newConfig?.emailSettings || {}),
+    },
+  };
   isConfigLoaded = true;
   safeEnsureDataDir();
   try {
-    fs.writeFileSync(CONFIG_FILE, JSON.stringify(newConfig, null, 2), 'utf-8');
+    fs.writeFileSync(CONFIG_FILE, JSON.stringify(memoryConfig, null, 2), 'utf-8');
     return true;
   } catch (err) {
-    // File writing failed in serverless, in-memory updated
+    // In serverless, memoryConfig is preserved
     return true;
   }
 }

@@ -18,7 +18,9 @@ import {
   Check,
   Play,
   RotateCcw,
-  Sparkles
+  Sparkles,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { SiteConfig } from '@/types';
 import { defaultSiteConfig } from '@/data/defaultData';
@@ -29,6 +31,7 @@ export default function AdminSettingsPage() {
   const [saved, setSaved] = useState(false);
   const [copiedWebhook, setCopiedWebhook] = useState(false);
   const [copiedKey, setCopiedKey] = useState(false);
+  const [showCapiToken, setShowCapiToken] = useState(false);
 
   // SMS Tester State
   const [testSms, setTestSms] = useState('You have received Tk 299.00 from 01712345678. Ref . Fee Tk 0.00. Balance Tk 5,450.00. TrxID 9J7X8KL9 at 25/08/2026 16:10');
@@ -40,7 +43,14 @@ export default function AdminSettingsPage() {
       .then((res) => res.json())
       .then((data) => {
         if (data && data.hero) {
-          setConfig((prev) => ({ ...prev, ...data }));
+          setConfig((prev) => ({
+            ...prev,
+            ...data,
+            metaTracking: {
+              ...prev.metaTracking,
+              ...(data.metaTracking || {}),
+            },
+          }));
         }
       });
   }, []);
@@ -54,9 +64,15 @@ export default function AdminSettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config),
       });
-      if (res.ok) {
+      const data = await res.json();
+      if (res.ok && data.success) {
+        if (data.config) {
+          setConfig(data.config);
+        }
         setSaved(true);
         setTimeout(() => setSaved(false), 3000);
+      } else {
+        alert('সেটিংস সংরক্ষণে সমস্যা হয়েছে');
       }
     } catch (e) {
       alert('সেটিংস সংরক্ষণে সমস্যা হয়েছে');
@@ -492,11 +508,11 @@ export default function AdminSettingsPage() {
             <input
               type="text"
               placeholder="e.g. 123456789012345"
-              value={config.metaTracking.pixelId}
+              value={config.metaTracking?.pixelId || ''}
               onChange={(e) =>
                 setConfig({
                   ...config,
-                  metaTracking: { ...config.metaTracking, pixelId: e.target.value },
+                  metaTracking: { ...(config.metaTracking || {}), pixelId: e.target.value },
                 })
               }
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500 font-mono"
@@ -504,19 +520,31 @@ export default function AdminSettingsPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1">Conversions API Access Token</label>
-            <input
-              type="password"
-              placeholder="EAAB..."
-              value={config.metaTracking.conversionsApiToken}
-              onChange={(e) =>
-                setConfig({
-                  ...config,
-                  metaTracking: { ...config.metaTracking, conversionsApiToken: e.target.value },
-                })
-              }
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500 font-mono"
-            />
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-medium text-slate-400">Conversions API Access Token</label>
+              <button
+                type="button"
+                onClick={() => setShowCapiToken(!showCapiToken)}
+                className="text-[11px] text-slate-400 hover:text-emerald-400 flex items-center gap-1 transition-colors"
+              >
+                {showCapiToken ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                <span>{showCapiToken ? 'লুকান' : 'দেখুন'}</span>
+              </button>
+            </div>
+            <div className="relative">
+              <input
+                type={showCapiToken ? 'text' : 'password'}
+                placeholder="EAAB..."
+                value={config.metaTracking?.conversionsApiToken || ''}
+                onChange={(e) =>
+                  setConfig({
+                    ...config,
+                    metaTracking: { ...(config.metaTracking || {}), conversionsApiToken: e.target.value },
+                  })
+                }
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500 font-mono"
+              />
+            </div>
           </div>
         </div>
       </div>
