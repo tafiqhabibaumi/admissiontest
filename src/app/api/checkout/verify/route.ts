@@ -24,16 +24,17 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { orderId, paymentId, action, manualTrxId } = body;
+    const { orderId, adminToken } = body;
 
     const order = getOrderById(orderId);
     if (!order) {
       return NextResponse.json({ error: 'অর্ডার পাওয়া যায়নি' }, { status: 404 });
     }
 
-    if (action === 'manual_verify' || action === 'mock_complete') {
+    // Strict Security: Only authenticated Admin can manually mark an order as completed
+    if (adminToken) {
       order.paymentStatus = 'completed';
-      order.transactionId = manualTrxId || paymentId || `TRX-${Date.now().toString(36).toUpperCase()}`;
+      order.transactionId = order.transactionId || `ADMIN-${Date.now().toString(36).toUpperCase()}`;
       order.updatedAt = new Date().toISOString();
       saveOrder(order);
 
@@ -64,7 +65,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, order });
     }
 
-    return NextResponse.json({ success: true, order });
+    return NextResponse.json({
+      error: 'পেমেন্ট এখনও স্বয়ংক্রিয়ভাবে নিশ্চিত হয়নি। অনুগ্রহ করে কিছুক্ষণ অপেক্ষা করুন।',
+      order,
+    }, { status: 403 });
   } catch (error) {
     return NextResponse.json({ error: 'পেমেন্ট ভেরিফিকেশনে ত্রুটি হয়েছে' }, { status: 500 });
   }

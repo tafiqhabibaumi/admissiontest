@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import confetti from 'canvas-confetti';
@@ -9,13 +9,14 @@ import {
   Download,
   Mail,
   ShieldCheck,
-  Sparkles,
   ArrowLeft,
   MessageCircle,
   FileText,
   Clock,
   AlertCircle,
-  Loader2
+  Loader2,
+  Radio,
+  RefreshCw
 } from 'lucide-react';
 import { Order } from '@/types';
 import { formatBDT, toBengaliNumber } from '@/lib/utils';
@@ -28,8 +29,9 @@ export default function OrderStatusPage() {
 
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
-  const [verifying, setVerifying] = useState(false);
-  const [error, setError] = useState('');
+  const [isPolling, setIsPolling] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchOrder = async () => {
     try {
@@ -83,36 +85,33 @@ export default function OrderStatusPage() {
     fetchOrder();
   }, [orderId]);
 
-  const handleSimulatePayment = async () => {
-    setVerifying(true);
-    try {
-      const res = await fetch('/api/checkout/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          orderId,
-          action: 'mock_complete',
-          paymentId: `MOCK-${Date.now()}`,
-        }),
-      });
-      const data = await res.json();
-      if (data.success && data.order) {
-        setOrder(data.order);
-        triggerConfetti();
-
-        trackPixelEvent('Purchase', {
-          value: data.order.amount,
-          currency: 'BDT',
-          content_name: data.order.packageTitle,
-          order_id: data.order.id,
-        });
-      }
-    } catch (e) {
-      setError('পেমেন্ট নিশ্চিতকরণে সমস্যা হয়েছে');
-    } finally {
-      setVerifying(false);
+  // Real-time automatic SMS polling if payment is pending
+  useEffect(() => {
+    if (!order || order.paymentStatus === 'completed') {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+      return;
     }
-  };
+
+    setIsPolling(true);
+    pollIntervalRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(
+          `/api/checkout/poll-status?orderId=${order.id}&phone=${encodeURIComponent(order.customerPhone)}&amount=${order.amount}`
+        );
+        const data = await res.json();
+        if (data.verified) {
+          if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+          fetchOrder();
+        }
+      } catch (err) {
+        console.error('Polling error:', err);
+      }
+    }, 3000);
+
+    return () => {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    };
+  }, [order?.paymentStatus, order?.id, order?.customerPhone, order?.amount]);
 
   if (loading) {
     return (
@@ -189,7 +188,7 @@ export default function OrderStatusPage() {
                   <span>📥 সাজেশন PDF ডাউনলোড করুন (ফুল ভার্সন)</span>
                 </a>
 
-                <div className="flex items-center justify-center gap-4 text-xs text-slate-400">
+                <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-slate-400">
                   <span className="flex items-center gap-1 text-emerald-400">
                     <Mail className="w-3.5 h-3.5" /> ইমেইলেও পাঠানো হয়েছে ({order.customerEmail})
                   </span>
@@ -200,40 +199,51 @@ export default function OrderStatusPage() {
             </>
           ) : (
             <>
-              {/* Pending Verification Window */}
-              <div className="w-16 h-16 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center mx-auto">
-                <Clock className="w-8 h-8" />
+              {/* Pending Real-time Radar Window */}
+              <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
+                <div className="absolute inset-0 rounded-full border-2 border-amber-500/30 animate-ping" />
+                <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center text-white shadow-xl">
+                  <Radio className="w-7 h-7 animate-pulse" />
+                </div>
               </div>
 
               <div className="space-y-3">
-                <span className="text-xs font-bold text-amber-400 uppercase tracking-widest bg-amber-950/60 px-3 py-1 rounded-full border border-amber-500/30">
-                  পেমেন্ট যাচাই প্রক্রিয়াধীন
+                <span className="text-xs font-bold text-amber-400 uppercase tracking-widest bg-amber-950/60 px-3 py-1 rounded-full border border-amber-500/30 inline-flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                  পেমেন্ট এসএমএস স্বয়ংক্রিয়ভাবে যাচাই হচ্ছে...
                 </span>
-                <h1 className="text-2xl font-bold text-white leading-normal">পেমেন্ট ভেরিফিকেশন</h1>
-                
-                <div className="flex justify-center gap-3 py-1">
-                  <img src="/images/payment/bkash.svg" alt="bKash" className="h-7 bg-white p-1 rounded border object-contain" />
-                  <img src="/images/payment/nagad.png" alt="Nagad" className="h-7 bg-white p-1 rounded border object-contain" />
-                  <img src="/images/payment/rocket.svg" alt="Rocket" className="h-7 bg-white p-1 rounded border object-contain" />
-                </div>
+                <h1 className="text-2xl font-bold text-white leading-normal">অটো-ভেরিফিকেশন চলছে</h1>
 
-                <p className="text-xs text-slate-400">
-                  আপনার পেমেন্ট TrxID গ্রহণ করা হয়েছে। এডমিন ভেরিফাই করলেই আপনার ইমেইলে ফাইল পৌঁছে যাবে বা টেস্ট মোডে নিচের বাটনে ক্লিক করুন:
+                <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
+                  আপনার বিকাশ/নগদ/রকেট থেকে পাঠানো <strong className="text-emerald-400 font-mono">{formatBDT(order.amount)}</strong> টাকা আসার এসএমএস রিসিভ হলেই এই পেজটিতে সাথে সাথে ডাউনলোড লিংক ও লাইফটাইম এক্সেস আনলক হয়ে যাবে।
                 </p>
               </div>
 
-              <button
-                onClick={handleSimulatePayment}
-                disabled={verifying}
-                className="w-full py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50"
-              >
-                {verifying ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Sparkles className="w-4 h-4 text-amber-300" />
-                )}
-                <span>টেস্ট পেমেন্ট ভেরিফাই ও ইনস্ট্যান্ট ডাউনলোড আনলক</span>
-              </button>
+              {/* Waiting Information & Helpline */}
+              <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-3 text-xs">
+                <div className="flex items-center justify-center gap-2 text-slate-400 text-[11px]">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400" />
+                  <span>সার্ভারে নতুন এসএমএস পর্যবেক্ষণ চলছে...</span>
+                </div>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-1">
+                  <a
+                    href={`https://wa.me/8801760470298?text=${encodeURIComponent(`আসসালামু আলাইকুম, আমি ${order.amount} টাকা পাঠিয়েছি। আমার অর্ডার নম্বর #${order.id}, ফোন: ${order.customerPhone}`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs inline-flex items-center justify-center gap-2 transition-all shadow"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span>WhatsApp হেল্পলাইনে মেসেজ দিন</span>
+                  </a>
+                  <button
+                    onClick={fetchOrder}
+                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs inline-flex items-center justify-center gap-1.5 transition-all"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>রিফ্রেশ করুন</span>
+                  </button>
+                </div>
+              </div>
             </>
           )}
 
@@ -279,7 +289,7 @@ export default function OrderStatusPage() {
               <ShieldCheck className="w-4 h-4 text-emerald-400" /> সার্বক্ষণিক সাপোর্ট সহায়তা
             </span>
             <a
-              href="https://wa.me/8801700000000"
+              href="https://wa.me/8801760470298"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-emerald-400 hover:underline font-semibold"

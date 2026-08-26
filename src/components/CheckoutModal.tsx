@@ -20,7 +20,8 @@ import {
   CheckCircle2,
   RefreshCw,
   Clock,
-  History
+  History,
+  MessageCircle
 } from 'lucide-react';
 import { SingleProductConfig, SiteConfig } from '@/types';
 import { formatBDT } from '@/lib/utils';
@@ -244,26 +245,6 @@ export default function CheckoutModal({
     }
   };
 
-  // Manual verify fallback if SMS took longer than 30s
-  const handleManualFallbackVerify = async () => {
-    if (!activeOrderId) return;
-    setIsSubmitting(true);
-    try {
-      await fetch('/api/checkout/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          orderId: activeOrderId,
-          action: 'manual_verify',
-          manualTrxId: manualTrxId.trim() || `VERIFIED-${senderPhone.slice(-6)}`,
-        }),
-      });
-      window.location.href = `/order-status/${activeOrderId}?success=1`;
-    } catch (err) {
-      window.location.href = `/order-status/${activeOrderId}`;
-    }
-  };
-
   const currentNumber =
     paymentMode === 'manual_bkash'
       ? (paymentSettings?.bkashMerchantNumber || '01760470298')
@@ -364,20 +345,40 @@ export default function CheckoutModal({
                       </div>
                     </div>
 
-                    <p className="text-[11px] text-slate-400">
-                      টাকা পাঠানোর সাথে সাথে আপনার স্ক্রিন স্বয়ংক্রিয়ভাবে ডাউনলোড পেজে চলে যাবে।
-                    </p>
-
-                    {/* Manual fallback button if needed */}
-                    <div className="pt-2">
-                      <button
-                        type="button"
-                        onClick={handleManualFallbackVerify}
-                        className="text-xs text-emerald-400 hover:text-emerald-300 underline font-medium cursor-pointer"
-                      >
-                        টাকা পাঠিয়ে থাকলে এখনই সরাসরি পেজটি ওপেন করুন →
-                      </button>
-                    </div>
+                    {verifyCountdown === 0 ? (
+                      <div className="p-3.5 rounded-2xl bg-amber-950/40 border border-amber-500/30 text-amber-300 text-xs space-y-2.5 text-center">
+                        <div className="flex items-center justify-center gap-2 font-bold text-amber-400">
+                          <Clock className="w-4 h-4 shrink-0" />
+                          <span>এসএমএস যাচাই চলছে...</span>
+                        </div>
+                        <p className="text-[11px] text-slate-300 leading-relaxed">
+                          মোবাইল অপারেটরের নেটওয়ার্কের কারণে এসএমএস পৌঁছাতে ৩০-৬০ সেকেন্ড লাগতে পারে। ব্যাকগ্রাউন্ডে স্বয়ংক্রিয়ভাবে যাচাই প্রক্রিয়া চালু রয়েছে।
+                        </p>
+                        <div className="flex items-center justify-center gap-2.5 pt-1">
+                          <a
+                            href={`https://wa.me/${(paymentSettings?.bkashMerchantNumber || '01760470298').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`আসসালামু আলাইকুম, আমি ${discountPrice} টাকা পাঠিয়েছি। আমার অর্ডার আইডি: ${activeOrderId}, ফোন নম্বর: ${senderPhone}`)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold inline-flex items-center gap-1.5 transition-all shadow"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            <span>WhatsApp হেল্পলাইন</span>
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => setVerifyCountdown(30)}
+                            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-bold inline-flex items-center gap-1 transition-all"
+                          >
+                            <RefreshCw className="w-3.5 h-3.5" />
+                            <span>আবার চেক করুন</span>
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-slate-400">
+                        টাকা পাঠানোর সাথে সাথে আপনার স্ক্রিন স্বয়ংক্রিয়ভাবে ডাউনলোড পেজে চলে যাবে।
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
