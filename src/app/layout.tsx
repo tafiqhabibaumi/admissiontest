@@ -36,6 +36,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const config = getSiteConfig();
+  const pixelId = config.metaTracking?.pixelId || '1808726510148350';
+  const isMetaEnabled = config.metaTracking?.enabled !== false;
 
   return (
     <html lang="bn" className="scroll-smooth">
@@ -44,13 +46,44 @@ export default function RootLayout({
         <meta name="theme-color" content="#07090e" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        
+        {/* Official Meta Pixel Script in <head> for Instant Execution */}
+        {isMetaEnabled && (
+          <>
+            <script
+              dangerouslySetInnerHTML={{
+                __html: `
+                  !function(f,b,e,v,n,t,s)
+                  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+                  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+                  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+                  n.queue=[];t=b.createElement(e);t.async=!0;
+                  t.src=v;s=b.getElementsByTagName(e)[0];
+                  s.parentNode.insertBefore(t,s)}(window, document,'script',
+                  'https://connect.facebook.net/en_US/fbevents.js');
+                  fbq('init', '${pixelId}');
+                  fbq('track', 'PageView');
+                `,
+              }}
+            />
+            <noscript>
+              <img
+                height="1"
+                width="1"
+                style={{ display: 'none' }}
+                src={`https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1`}
+                alt=""
+              />
+            </noscript>
+          </>
+        )}
       </head>
       <body
         className="bg-[#07090e] text-slate-100 antialiased min-h-screen relative selection:bg-emerald-500 selection:text-white overflow-x-hidden"
       >
         <MetaPixel
-          pixelId={config.metaTracking.pixelId}
-          enabled={config.metaTracking.enabled}
+          pixelId={pixelId}
+          enabled={isMetaEnabled}
         />
         <ParticleBackground />
         <div className="relative z-10 w-full overflow-x-hidden">{children}</div>

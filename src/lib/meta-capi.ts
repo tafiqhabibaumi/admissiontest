@@ -27,6 +27,7 @@ export interface MetaCapiEventPayload {
   eventName: 'PageView' | 'ViewContent' | 'InitiateCheckout' | 'AddPaymentInfo' | 'Purchase' | 'Contact' | 'Lead';
   eventSourceUrl: string;
   eventId?: string;
+  testEventCode?: string;
   userData?: MetaUserData;
   customData?: MetaCustomData;
 }
@@ -106,8 +107,9 @@ export async function sendMetaCapiEvent(payload: MetaCapiEventPayload): Promise<
       data: [eventData],
     };
 
-    if (testEventCode) {
-      requestBody.test_event_code = testEventCode;
+    const effectiveTestCode = payload.testEventCode || testEventCode;
+    if (effectiveTestCode) {
+      requestBody.test_event_code = effectiveTestCode;
     }
 
     const res = await fetch(`https://graph.facebook.com/v19.0/${pixelId}/events?access_token=${conversionsApiToken}`, {

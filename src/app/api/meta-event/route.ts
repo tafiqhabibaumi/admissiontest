@@ -23,6 +23,7 @@ export async function POST(request: Request) {
       eventName,
       eventId,
       eventSourceUrl: eventSourceUrl || request.headers.get('referer') || '',
+      testEventCode: body.testEventCode || undefined,
       userData: {
         ...userData,
         clientIpAddress: clientIp,
