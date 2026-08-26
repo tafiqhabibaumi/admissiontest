@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
 import path from 'path';
 import fs from 'fs';
+import { getSiteConfig, saveSiteConfig } from '@/lib/db';
+
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
-    const packageId = formData.get('packageId') as string | null;
 
     if (!file) {
       return NextResponse.json({ error: 'কোনো ফাইল সিলেক্ট করা হয়নি' }, { status: 400 });
@@ -20,16 +22,25 @@ export async function POST(request: Request) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    const safeFileName = `${packageId || 'custom'}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
-    const filePath = path.join(uploadsDir, safeFileName);
+    // Keep the exact original file name that the user uploaded
+    const exactFileName = file.name;
+    const filePath = path.join(uploadsDir, exactFileName);
 
     fs.writeFileSync(filePath, buffer);
 
+    // Automatically update site config with the exact uploaded PDF file name
+    const config = getSiteConfig();
+    config.product = {
+      ...config.product,
+      pdfFileName: exactFileName,
+    };
+    saveSiteConfig(config);
+
     return NextResponse.json({
       success: true,
-      fileName: safeFileName,
-      url: `/uploads/${safeFileName}`,
-      message: 'পিডিএফ ফাইল সফলভাবে আপলোড করা হয়েছে',
+      fileName: exactFileName,
+      url: `/uploads/${exactFileName}`,
+      message: `পিডিএফ ফাইল "${exactFileName}" সফলভাবে আপলোড ও সেভ করা হয়েছে`,
     });
   } catch (error) {
     console.error('File upload error:', error);

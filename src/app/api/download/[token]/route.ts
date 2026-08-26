@@ -25,10 +25,20 @@ export async function GET(
   saveOrder(order);
 
   const config = getSiteConfig();
-  const pdfFilename = config.product?.pdfFileName || 'all_science_admission_master_guide_2025.pdf';
-  const uploadFilePath = path.join(process.cwd(), 'public', 'uploads', pdfFilename);
+  let pdfFilename = config.product?.pdfFileName || 'all_science_admission_master_guide_2026.pdf';
+  const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+  let uploadFilePath = path.join(uploadsDir, pdfFilename);
 
-  // If a physical PDF was uploaded to public/uploads, serve it
+  // If specific file not found directly, check if any uploaded PDF exists in public/uploads
+  if (!fs.existsSync(uploadFilePath) && fs.existsSync(uploadsDir)) {
+    const files = fs.readdirSync(uploadsDir).filter((f) => f.toLowerCase().endsWith('.pdf'));
+    if (files.length > 0) {
+      pdfFilename = files[0];
+      uploadFilePath = path.join(uploadsDir, pdfFilename);
+    }
+  }
+
+  // If a physical PDF was uploaded to public/uploads, serve it with its exact filename
   if (fs.existsSync(uploadFilePath)) {
     const fileBuffer = fs.readFileSync(uploadFilePath);
     return new NextResponse(new Uint8Array(fileBuffer), {
@@ -59,7 +69,7 @@ function generateFullMasterPdf(order: any, config: any): Buffer {
   const pdfString = `%PDF-1.4
 1 0 obj
 <<
-/Title (All Science University Admission Master Guide 2025)
+/Title (All Science University Admission Master Guide 2026-27)
 /Author (Science Admission Mentorship)
 /Creator (${buyer} - ${orderId})
 /Producer (Admission Strategy Engine)

@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export async function generateMetadata(): Promise<Metadata> {
   const config = getSiteConfig();
   return {
-    title: `${config.hero.title} ${config.hero.highlightTitle} | সকল বিশ্ববিদ্যালয় বিজ্ঞান ও ইঞ্জিনিয়ারিং ২০২৫`,
+    title: `${config.hero.title} ${config.hero.highlightTitle} | সকল বিশ্ববিদ্যালয় বিজ্ঞান ও ইঞ্জিনিয়ারিং ২০২৬-২৭`,
     description: config.hero.subtitle,
     keywords: [
       'BUET admission suggestion',
@@ -17,7 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
       'RUET CUET KUET suggestion',
       'CKReUT admission guide',
       'Engineering admission suggestion Bangladesh',
-      'বুয়েট ভর্তি পরীক্ষা ২০২৫',
+      'বুয়েট ভর্তি পরীক্ষা ২০২৬-২৭',
       'ইঞ্জিনিয়ারিং চ্যাপ্টার ভিত্তিক পড়ার সময়',
       'Admission what to skip list'
     ],
