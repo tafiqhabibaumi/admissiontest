@@ -168,7 +168,7 @@ export default function AdminSettingsPage() {
             firstName: 'Admission Student',
           },
           customData: {
-            contentName: 'Admission Master Guide 2025-26',
+            contentName: 'Admission Master Guide 2026-27',
             value: 299,
             currency: 'BDT',
           },

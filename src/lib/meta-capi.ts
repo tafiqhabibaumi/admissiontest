@@ -84,7 +84,7 @@ export async function sendMetaCapiEvent(payload: MetaCapiEventPayload): Promise<
     const formattedCustomData: Record<string, any> = {
       currency: payload.customData?.currency || 'BDT',
       value: payload.customData?.value !== undefined ? payload.customData.value : 299,
-      content_name: payload.customData?.contentName || 'Admission Master Guide 2025-26',
+      content_name: payload.customData?.contentName || 'Admission Master Guide 2026-27',
       content_type: 'product',
       content_category: payload.customData?.contentCategory || 'Education/Exam Preparation',
     };

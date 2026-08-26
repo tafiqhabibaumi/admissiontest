@@ -61,7 +61,7 @@ export async function POST(request: Request) {
       customerEmail: email,
       customerPhone: effectivePhone,
       targetUniversity: targetUniversity || 'সকল বিশ্ববিদ্যালয় বিজ্ঞান ও ইঞ্জিনিয়ারিং',
-      hscBatch: hscBatch || 'HSC 2024/2025',
+      hscBatch: hscBatch || 'HSC 2025/2026 (২০২৬-২৭)',
       packageId: 'all-science-master-guide',
       packageTitle: product.title,
       amount: amount,

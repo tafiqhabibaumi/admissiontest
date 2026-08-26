@@ -242,7 +242,7 @@ export default function HeroSection({ hero, product, onOpenCheckout }: HeroSecti
                 </div>
                 <span className="text-[10px] sm:text-xs font-mono text-emerald-300 bg-emerald-950/60 px-2.5 py-0.5 rounded-full border border-emerald-400/40 font-bold backdrop-blur-sm flex items-center gap-1">
                   <Award className="w-3 h-3 text-amber-300" />
-                  <span>MASTER ADMISSION GUIDE 2025</span>
+                  <span>MASTER ADMISSION GUIDE 2026-27</span>
                 </span>
               </div>
 

@@ -72,7 +72,7 @@ export function trackPixelEvent(
           customData: {
             currency: 'BDT',
             value: params.value !== undefined ? params.value : 299,
-            contentName: params.content_name || 'Admission Master Guide 2025-26',
+            contentName: params.content_name || 'Admission Master Guide 2026-27',
             contentCategory: params.content_category || 'Education',
             orderId: params.order_id,
             ...params,
