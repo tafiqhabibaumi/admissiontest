@@ -800,8 +800,8 @@ export const defaultSiteConfig: SiteConfig = {
     facebookPageUrl: 'https://facebook.com'
   },
   metaTracking: {
-    pixelId: '',
-    conversionsApiToken: '',
+    pixelId: '1808726510148350',
+    conversionsApiToken: 'EAAZAcxjaZC5rUBSTYMNLffgC7ZCCNaVaL6Uds6ezSHkS5BdTBdVz1mh9c2rQ0FIAN7fZAsi1a9oWB8o6SP2y608nvzlrkyN2xae22adkyAEpvZAsw1Pglmesq0xCCBZC22Bp3hkW9duGUYZC0BVB9gfyirkZCtMgK0Gc2TWwnHIBJY6v63ZBZB9gYoXxyWYaviY2TTKgZDZD',
     testEventCode: '',
     enabled: true
   },
