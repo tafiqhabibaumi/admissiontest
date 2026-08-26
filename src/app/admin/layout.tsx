@@ -12,23 +12,67 @@ import {
   LogOut,
   BookOpen,
   Menu,
-  X
+  X,
+  Loader2,
+  ShieldAlert
 } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  // Authentication check for all /admin routes
+  useEffect(() => {
+    if (pathname === '/admin/login') {
+      setIsCheckingAuth(false);
+      return;
+    }
+
+    const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
+    const hasSessionCookie = typeof document !== 'undefined' ? document.cookie.includes('admin_session=') : false;
+
+    if (!token && !hasSessionCookie) {
+      setIsAuthenticated(false);
+      setIsCheckingAuth(false);
+      router.replace('/admin/login');
+    } else {
+      setIsAuthenticated(true);
+      setIsCheckingAuth(false);
+    }
+  }, [pathname, router]);
 
   // If on login page, render children directly without sidebar
   if (pathname === '/admin/login') {
     return <>{children}</>;
   }
 
+  // Show loading screen while checking authentication
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-[#07090e] flex flex-col items-center justify-center text-white space-y-4 p-4">
+        <div className="w-12 h-12 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+          <Loader2 className="w-6 h-6 animate-spin" />
+        </div>
+        <div className="text-center">
+          <p className="text-sm font-bold">এডমিন সিকিউরিটি ভেরিফাই করা হচ্ছে...</p>
+          <p className="text-xs text-slate-500 mt-0.5">অনুগ্রহ করে অপেক্ষা করুন</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If not authenticated, prevent any admin render
+  if (!isAuthenticated) {
+    return null;
+  }
+
   const handleLogout = () => {
     localStorage.removeItem('admin_token');
-    document.cookie = 'admin_session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-    router.push('/admin/login');
+    document.cookie = 'admin_session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax;';
+    router.replace('/admin/login');
   };
 
   const navItems = [
@@ -112,7 +156,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 w-full px-3.5 py-2 rounded-xl text-xs text-rose-400 hover:bg-rose-950/40 transition-colors"
+            className="flex items-center gap-2 w-full px-3.5 py-2 rounded-xl text-xs text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
             <span>লগআউট</span>
