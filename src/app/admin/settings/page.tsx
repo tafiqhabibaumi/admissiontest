@@ -38,6 +38,10 @@ export default function AdminSettingsPage() {
   const [testingSms, setTestingSms] = useState(false);
   const [testResult, setTestResult] = useState<any>(null);
 
+  // Meta Event Tester State
+  const [testingMeta, setTestingMeta] = useState(false);
+  const [testMetaResult, setTestMetaResult] = useState<any>(null);
+
   useEffect(() => {
     fetch('/api/config')
       .then((res) => res.json())
@@ -118,6 +122,40 @@ export default function AdminSettingsPage() {
       setTestResult({ error: err.message || 'Simulation request failed' });
     } finally {
       setTestingSms(false);
+    }
+  };
+
+  const handleSendMetaTestEvent = async () => {
+    setTestingMeta(true);
+    setTestMetaResult(null);
+
+    try {
+      const res = await fetch('/api/meta-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventName: 'PageView',
+          eventSourceUrl: typeof window !== 'undefined' ? window.location.origin : 'https://vortiporikkha.vercel.app',
+          testEventCode: config.metaTracking?.testEventCode?.trim() || undefined,
+          userData: {
+            phone: '01760470298',
+            email: 'student@example.com',
+            firstName: 'Admission Student',
+          },
+          customData: {
+            contentName: 'Admission Master Guide 2025-26',
+            value: 299,
+            currency: 'BDT',
+          },
+        }),
+      });
+
+      const data = await res.json();
+      setTestMetaResult(data);
+    } catch (err: any) {
+      setTestMetaResult({ error: err.message || 'Failed to send test event' });
+    } finally {
+      setTestingMeta(false);
     }
   };
 
@@ -546,6 +584,53 @@ export default function AdminSettingsPage() {
               />
             </div>
           </div>
+        </div>
+
+        {/* Live Meta CAPI Event Tester */}
+        <div className="mt-4 pt-4 border-t border-slate-800 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <label className="block text-xs font-semibold text-white">
+                Meta Events Manager টেস্ট কোড (Test Event Code - ঐচ্ছিক)
+              </label>
+              <p className="text-[11px] text-slate-400">
+                Facebook Events Manager {'>'} "Test events" {'>'} "Confirm your server's events" থেকে পাওয়া কোডটি দিন (যেমন: TEST12345)
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="e.g. TEST12345"
+                value={config.metaTracking?.testEventCode || ''}
+                onChange={(e) =>
+                  setConfig({
+                    ...config,
+                    metaTracking: { ...(config.metaTracking || {}), testEventCode: e.target.value.trim() },
+                  })
+                }
+                className="w-36 bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white font-mono uppercase focus:outline-none focus:border-emerald-500"
+              />
+              <button
+                type="button"
+                onClick={handleSendMetaTestEvent}
+                disabled={testingMeta}
+                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 shadow transition-all active:scale-95 disabled:opacity-50"
+              >
+                <Play className="w-3.5 h-3.5" />
+                <span>{testingMeta ? 'পাঠানো হচ্ছে...' : 'টেস্ট ইভেন্ট পাঠান'}</span>
+              </button>
+            </div>
+          </div>
+
+          {testMetaResult && (
+            <div className={`p-3 rounded-xl text-xs font-mono border ${testMetaResult.success ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300' : 'bg-rose-950/60 border-rose-500/40 text-rose-300'}`}>
+              <div className="flex items-center gap-1.5 font-bold mb-1">
+                {testMetaResult.success ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <AlertCircle className="w-4 h-4 text-rose-400" />}
+                <span>{testMetaResult.success ? '✓ মেটা গ্রাফ এপিআই (CAPI)-তে টেস্ট ইভেন্ট সফলভাবে পাঠানো হয়েছে!' : '✗ মেটা টেস্ট ইভেন্ট পাঠাতে সমস্যা হয়েছে:'}</span>
+              </div>
+              <pre className="text-[11px] overflow-x-auto whitespace-pre-wrap">{JSON.stringify(testMetaResult, null, 2)}</pre>
+            </div>
+          )}
         </div>
       </div>
     </div>
