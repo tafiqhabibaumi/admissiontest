@@ -28,6 +28,28 @@ function safeEnsureDataDir() {
   }
 }
 
+function sanitizeSessionYears(obj: any): any {
+  if (!obj) return obj;
+  if (typeof obj === 'string') {
+    return obj
+      .replace(/২০২৫-২৬/g, '২০২৬-২৭')
+      .replace(/2025-26/g, '2026-27')
+      .replace(/২০২৫/g, '২০২৬-২৭')
+      .replace(/2025/g, '2026-27');
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(sanitizeSessionYears);
+  }
+  if (typeof obj === 'object') {
+    const cleaned: any = {};
+    for (const key of Object.keys(obj)) {
+      cleaned[key] = sanitizeSessionYears(obj[key]);
+    }
+    return cleaned;
+  }
+  return obj;
+}
+
 // Get site config with robust fallback and environment variable overrides
 export function getSiteConfig(): SiteConfig {
   let baseConfig = { ...defaultSiteConfig };
@@ -59,6 +81,7 @@ export function getSiteConfig(): SiteConfig {
     } catch (err) {
       // Silently fallback to defaultSiteConfig
     }
+    baseConfig = sanitizeSessionYears(baseConfig);
     memoryConfig = baseConfig;
     isConfigLoaded = true;
   }
@@ -75,31 +98,33 @@ export function getSiteConfig(): SiteConfig {
     baseConfig.metaTracking.conversionsApiToken = envCapiToken;
   }
 
-  return baseConfig;
+  return sanitizeSessionYears(baseConfig);
 }
 
 // Save updated site config with deep merge
 export function saveSiteConfig(newConfig: SiteConfig): boolean {
+  const sanitizedNewConfig = sanitizeSessionYears(newConfig);
   memoryConfig = {
     ...defaultSiteConfig,
     ...memoryConfig,
-    ...newConfig,
+    ...sanitizedNewConfig,
     metaTracking: {
       ...defaultSiteConfig.metaTracking,
       ...memoryConfig?.metaTracking,
-      ...(newConfig?.metaTracking || {}),
+      ...(sanitizedNewConfig?.metaTracking || {}),
     },
     paymentSettings: {
       ...defaultSiteConfig.paymentSettings,
       ...memoryConfig?.paymentSettings,
-      ...(newConfig?.paymentSettings || {}),
+      ...(sanitizedNewConfig?.paymentSettings || {}),
     },
     emailSettings: {
       ...defaultSiteConfig.emailSettings,
       ...memoryConfig?.emailSettings,
-      ...(newConfig?.emailSettings || {}),
+      ...(sanitizedNewConfig?.emailSettings || {}),
     },
   };
+  memoryConfig = sanitizeSessionYears(memoryConfig);
   isConfigLoaded = true;
   safeEnsureDataDir();
   try {
